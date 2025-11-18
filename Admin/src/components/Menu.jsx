@@ -1,93 +1,86 @@
 import {
   FaBox,
-  FaChartBar,
-  FaClipboard,
   FaClipboardList,
-  FaCog,
   FaElementor,
-  FaHdd,
   FaHome,
   FaSignOutAlt,
-  FaUser,
   FaUsers,
 } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Menu = () => {
+  const location = useLocation();
+
+  // Cấu trúc menu đã được rút gọn và Việt hóa
+  const menuGroups = [
+    {
+      title: "TỔNG QUAN",
+      items: [{ path: "/", icon: <FaHome />, label: "Trang chủ" }],
+    },
+    {
+      title: "QUẢN LÝ",
+      items: [
+        { path: "/users", icon: <FaUsers />, label: "Người dùng" },
+        { path: "/products", icon: <FaBox />, label: "Sản phẩm" },
+        { path: "/orders", icon: <FaClipboardList />, label: "Đơn hàng" },
+        { path: "/banners", icon: <FaElementor />, label: "Banner" },
+      ],
+    },
+  ];
+
+  // Hàm kiểm tra xem link có đang active không
+  const isActive = (path) => {
+    if (path === "/" && location.pathname !== "/") return false;
+    return location.pathname === path;
+  };
+
   return (
-    <div className="h-[100vh] bg-gray-100 p-[20px] w-[350px] shadow-lg">
-      <ul className="flex flex-col items-start justify-start mt-[20px] pl-[20px]">
-        <Link to="/">
-          <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100 hover:bg-pink-300">
-            <FaHome className="mr-[15px] text-[#ef93db]" />
-            Home
-          </li>
-        </Link>
+    <div className="flex flex-col h-screen w-64 bg-white border-r border-gray-200 sticky top-0 shadow-sm">
+      {/* Phần Logo */}
+      <div className="h-16 flex items-center justify-center border-b border-gray-200">
+        <span className="text-xl font-bold text-purple-600 uppercase">
+          GTBOOKS
+        </span>
+      </div>
 
-        <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-          <FaUser className="mr-[15px] text-[#ef93db]" />
-          Profile
-        </li>
+      {/* Phần danh sách Menu */}
+      <div className="flex-1 overflow-y-auto py-4">
+        {menuGroups.map((group, index) => (
+          <div key={index} className="mb-6">
+            {/* Tiêu đề nhóm */}
+            <span className="px-6 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+              {group.title}
+            </span>
 
-        <hr className="w-full my-[20px] border-gray-300" />
+            {/* Các mục trong nhóm */}
+            <ul>
+              {group.items.map((item) => (
+                <Link to={item.path} key={item.label}>
+                  <li
+                    className={`relative px-6 py-3 flex items-center text-sm font-medium transition-all duration-200 cursor-pointer
+                      ${
+                        isActive(item.path)
+                          ? "text-purple-600 bg-purple-50 border-r-4 border-purple-600" // Style khi đang chọn
+                          : "text-gray-600 hover:bg-gray-50 hover:text-purple-500" // Style bình thường
+                      }`}
+                  >
+                    <span className="text-lg mr-4">{item.icon}</span>
+                    {item.label}
+                  </li>
+                </Link>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
 
-        <Link to="/users">
-          <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-            <FaUsers className="mr-[15px] text-[#ef93db]" />
-            Users
-          </li>
-        </Link>
-
-        <Link to="/products">
-          <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-            <FaBox className="mr-[15px] text-[#ef93db]" />
-            Products
-          </li>
-        </Link>
-
-        <Link to="/orders">
-          <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-            <FaClipboardList className="mr-[15px] text-[#ef93db]" />
-            Orders
-          </li>
-        </Link>
-
-        <hr className="w-full my-[20px] border-gray-300" />
-
-        <Link to="/banners">
-          <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-            <FaElementor className="mr-[15px] text-[#ef93db]" />
-            Banners
-          </li>
-        </Link>
-
-        <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-          <FaCog className="mr-[15px] text-[#ef93db]" />
-          Settings
-        </li>
-
-        <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-          <FaHdd className="mr-[15px] text-[#ef93db]" />
-          Backups
-        </li>
-
-        <hr className="w-full my-[20px] border-gray-300" />
-
-        <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-          <FaChartBar className="mr-[15px] text-[#ef93db]" />
-          Charts
-        </li>
-
-        <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-          <FaClipboard className="mr-[15px] text-[#ef93db]" />
-          All logs
-        </li>
-
-        <li className="flex items-center text-[20px] cursor-pointer mt-[20px] transition-colors duration-100">
-          <FaSignOutAlt className="mr-[15px] text-[#ef93db]" />
-          Logout
-        </li>
-      </ul>
+      {/* Phần Đăng xuất */}
+      <div className="border-t border-gray-200 p-4">
+        <div className="flex items-center p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors duration-200">
+          <FaSignOutAlt className="mr-3 text-lg" />
+          <span className="text-sm font-medium">Đăng xuất</span>
+        </div>
+      </div>
     </div>
   );
 };
