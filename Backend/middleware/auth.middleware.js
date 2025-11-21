@@ -11,8 +11,10 @@ const protect = asyncHandler(async (req, res, next) => {
 
   if (token) {
     try {
-      const decodedToken = jwt.verify(token, process.env.JWT_SEC);
-      req.user = await User.findById(decodedToken.userId).select("-password");
+      const decoded = jwt.verify(token, process.env.JWT_SEC);
+
+      req.user = await User.findById(decoded.userId).select("-password");
+
       next();
     } catch (error) {
       res.status(401);
@@ -24,4 +26,13 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
-export default protect;
+const admin = (req, res, next) => {
+  if (req.user && req.user.role === 1) {
+    next();
+  } else {
+    res.status(401);
+    throw new Error("Not authorized as an admin");
+  }
+};
+
+export { protect, admin };

@@ -6,19 +6,23 @@ import {
   createOrder,
   updateOrder,
 } from "../controller/order.controller.js";
-import protect from "../middleware/auth.middleware.js";
+import { protect } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
 
 // Create Order Route
-router.post("/", createOrder);
+router.post("/", protect, createOrder);
+
 // Update Order Route
-router.put("/:id", updateOrder);
+router.put("/:id", protect, updateOrder);
+
 // Get All Orders Route
-// router.get("/", protect, getAllOrders);
-router.get("/", getAllOrders);
+router.get("/", protect, getAllOrders);
+
 // Delete Order Route
-router.delete("/:id", deleteOrder);
+router.delete("/:id", protect, deleteOrder);
+
 // Get User's Order Route
-router.get("/find/:id", getUserOrder);
+router.get("/find/:id", protect, getUserOrder);
 
 export default router;
