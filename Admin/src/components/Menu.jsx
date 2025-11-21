@@ -1,5 +1,6 @@
 import {
-  FaBox,
+  FaBook,
+  FaList,
   FaClipboardList,
   FaElementor,
   FaHome,
@@ -11,7 +12,6 @@ import { Link, useLocation } from "react-router-dom";
 const Menu = () => {
   const location = useLocation();
 
-  // Cấu trúc menu đã được rút gọn và Việt hóa
   const menuGroups = [
     {
       title: "TỔNG QUAN",
@@ -21,8 +21,8 @@ const Menu = () => {
       title: "QUẢN LÝ",
       items: [
         { path: "/users", icon: <FaUsers />, label: "Người dùng" },
-        { path: "/products", icon: <FaBox />, label: "Sản phẩm" },
-        { path: "/catelogies", icon: <FaBox />, label: "Thể loại" },
+        { path: "/categories", icon: <FaList />, label: "Thể loại" },
+        { path: "/products", icon: <FaBook />, label: "Sản phẩm" },
         { path: "/orders", icon: <FaClipboardList />, label: "Đơn hàng" },
         { path: "/banners", icon: <FaElementor />, label: "Banner" },
       ],

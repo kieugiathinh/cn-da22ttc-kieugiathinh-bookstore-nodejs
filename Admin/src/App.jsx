@@ -7,22 +7,23 @@ import Orders from "./pages/Orders.jsx";
 import Banners from "./pages/Banners.jsx";
 import Product from "./pages/Product.jsx";
 import NewProduct from "./pages/NewProduct.jsx";
+import Categories from "./pages/Categories.jsx";
+
+const Layout = () => {
+  return (
+    <div className="flex min-h-screen">
+      <div className="w-64 flex-none border-r">
+        <Menu />
+      </div>
+
+      <div className="w-full flex-1 bg-slate-50">
+        <Outlet />
+      </div>
+    </div>
+  );
+};
 
 function App() {
-  const Layout = () => {
-    return (
-      <div className="flex min-h-screen">
-        <div className="w-64 flex-none border-r">
-          <Menu />
-        </div>
-
-        <div className="w-full flex-1 bg-slate-50">
-          <Outlet />
-        </div>
-      </div>
-    );
-  };
-
   const router = createBrowserRouter([
     {
       path: "/",
@@ -35,6 +36,10 @@ function App() {
         {
           path: "/users",
           element: <Users />,
+        },
+        {
+          path: "/categories",
+          element: <Categories />,
         },
         {
           path: "/products",

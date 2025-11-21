@@ -25,4 +25,10 @@ router.delete("/:id", protect, deleteOrder);
 // Get User's Order Route
 router.get("/find/:id", protect, getUserOrder);
 
+// router.post("/", createOrder);
+// router.put("/:id", updateOrder);
+// router.get("/", getAllOrders);
+// router.delete("/:id", deleteOrder);
+// router.get("/find/:id", getUserOrder);
+
 export default router;
