@@ -11,12 +11,12 @@ import NewProduct from "./pages/NewProduct.jsx";
 function App() {
   const Layout = () => {
     return (
-      <div className="flex">
-        <div>
+      <div className="flex min-h-screen">
+        <div className="w-64 flex-none border-r">
           <Menu />
         </div>
 
-        <div>
+        <div className="w-full flex-1 bg-slate-50">
           <Outlet />
         </div>
       </div>

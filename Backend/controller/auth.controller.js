@@ -4,19 +4,25 @@ import generateToken from "../util/generateToken.js";
 
 // Register User
 // Route POST /api/v1/auth/register
-//@access public
-
+// @access public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
-  const userExists = await User.findOne({ email });
+  const { fullname, username, email, password } = req.body;
 
-  if (userExists) {
+  const userEmailExists = await User.findOne({ email });
+  if (userEmailExists) {
     res.status(400);
-    throw new Error("User already exists");
+    throw new Error("Email này đã được sử dụng");
+  }
+
+  const userUsernameExists = await User.findOne({ username });
+  if (userUsernameExists) {
+    res.status(400);
+    throw new Error("Username này đã được sử dụng");
   }
 
   const user = await User.create({
-    name,
+    fullname,
+    username,
     email,
     password,
   });
@@ -25,12 +31,14 @@ const registerUser = asyncHandler(async (req, res) => {
     generateToken(res, user._id);
     res.status(201).json({
       _id: user._id,
-      name: user.name,
+      fullname: user.fullname,
+      username: user.username,
       email: user.email,
+      role: user.role,
     });
   } else {
     res.status(400);
-    throw new Error("Invalid user data");
+    throw new Error("Thông tin người dùng không hợp lệ");
   }
 });
 
@@ -38,19 +46,22 @@ const registerUser = asyncHandler(async (req, res) => {
 // route POST api/v1/auth/Login
 // @access public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const { username, password } = req.body;
+
+  const user = await User.findOne({ username });
 
   if (user && (await user.matchPassword(password))) {
     generateToken(res, user._id);
     res.status(200).json({
       _id: user._id,
-      name: user.name,
+      fullname: user.fullname,
+      username: user.username,
       email: user.email,
+      role: user.role,
     });
   } else {
     res.status(401);
-    throw new Error("Invalid email or password");
+    throw new Error("Username hoặc mật khẩu không đúng");
   }
 });
 
@@ -62,7 +73,7 @@ const LogOut = asyncHandler(async (req, res) => {
     httpOnly: true,
     expires: new Date(0),
   });
-  res.status(200).json({ message: "Logout successfully" });
+  res.status(200).json({ message: "Đăng xuất thành công" });
 });
 
 export { LogOut, loginUser, registerUser };

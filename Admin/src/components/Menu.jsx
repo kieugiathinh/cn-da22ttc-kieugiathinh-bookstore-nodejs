@@ -22,6 +22,7 @@ const Menu = () => {
       items: [
         { path: "/users", icon: <FaUsers />, label: "Người dùng" },
         { path: "/products", icon: <FaBox />, label: "Sản phẩm" },
+        { path: "/catelogies", icon: <FaBox />, label: "Thể loại" },
         { path: "/orders", icon: <FaClipboardList />, label: "Đơn hàng" },
         { path: "/banners", icon: <FaElementor />, label: "Banner" },
       ],

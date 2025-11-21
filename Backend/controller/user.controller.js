@@ -2,8 +2,12 @@ import User from "../models/user.model.js";
 import asyncHandler from "express-async-handler";
 import bcrypt from "bcryptjs";
 
-//Update User
+// Update User
 const updateUser = asyncHandler(async (req, res) => {
+  if (req.body.role) {
+    delete req.body.role;
+  }
+
   if (req.body.password) {
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
@@ -13,46 +17,47 @@ const updateUser = asyncHandler(async (req, res) => {
     req.params.id,
     { $set: req.body },
     { new: true }
-  );
+  ).select("-password");
 
   if (!updatedUser) {
-    res.status(400);
-    throw new Error("User was not updated");
+    res.status(404);
+    throw new Error("Không tìm thấy người dùng để cập nhật");
   } else {
-    res.status(201).json(updatedUser);
+    res.status(200).json(updatedUser);
   }
 });
 
-//Delete User
+// Delete User
 const deleteUser = asyncHandler(async (req, res) => {
-  const deleteUser = await User.findByIdAndDelete(req.params.id);
-  if (!deleteUser) {
-    res.status(400);
-    throw new Error("User was not deleted successfully");
-  } else {
-    res.status(201).json("User was deletes successfully");
-  }
-});
-
-//Get One User
-const getUser = asyncHandler(async (req, res) => {
-  const user = await User.findBy(req.params.id);
+  const user = await User.findByIdAndDelete(req.params.id);
 
   if (!user) {
-    res.status(400);
-    throw new Error("User was not found");
+    res.status(404);
+    throw new Error("Không tìm thấy người dùng để xóa");
+  } else {
+    res.status(200).json({ message: "Xóa người dùng thành công" });
+  }
+});
+
+// Get One User
+const getUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password");
+
+  if (!user) {
+    res.status(404);
+    throw new Error("Người dùng không tồn tại");
   } else {
     res.status(200).json(user);
   }
 });
 
-// Get All User
+// Get All Users
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find();
+  const users = await User.find().sort({ createdAt: -1 }).select("-password");
 
   if (!users) {
-    res.status(400);
-    throw new Error("Users were not fetched");
+    res.status(404);
+    throw new Error("Không lấy được danh sách người dùng");
   } else {
     res.status(200).json(users);
   }

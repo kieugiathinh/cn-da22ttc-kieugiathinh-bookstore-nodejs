@@ -23,8 +23,8 @@ const Users = () => {
     try {
       setLoading(true);
       const res = await userRequest.get("/users");
-      // Vẫn cần map _id thành id cho các thao tác logic sau này
-      setUsers(res.data.map((user) => ({ ...user, id: user._id })));
+      const sortedData = res.data.sort((a, b) => b.role - a.role);
+      setUsers(sortedData.map((user) => ({ ...user, id: user._id })));
       setError(null);
     } catch (err) {
       console.error(err);
@@ -115,6 +115,9 @@ const Users = () => {
                 ID Hệ thống
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                Họ và tên
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Tên đăng nhập
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
@@ -145,6 +148,9 @@ const Users = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate max-w-xs">
                   {user._id}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate max-w-xs">
+                  {user.fullname}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {user.username || "—"}
                 </td>
@@ -158,12 +164,12 @@ const Users = () => {
                   <span
                     className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                     ${
-                      user.isAdmin
+                      user.role === 1
                         ? "bg-green-100 text-green-800"
                         : "bg-blue-100 text-blue-800"
                     }`}
                   >
-                    {user.isAdmin ? "Admin" : "Khách hàng"}
+                    {user.role === 1 ? "Admin" : "Khách hàng"}
                   </span>
                 </td>
 
