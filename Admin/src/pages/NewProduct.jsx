@@ -63,12 +63,12 @@ const NewProduct = () => {
     setUploadStatus("Đang tải ảnh lên Cloudinary...");
     const data = new FormData();
     data.append("file", selectedImage);
-    data.append("upload_preset", "uploads"); // Đảm bảo preset này đúng trên Cloudinary của bạn
+    data.append("upload_preset", "bookstore_preset"); // Đảm bảo preset này đúng trên Cloudinary của bạn
 
     try {
       // BƯỚC 1: UPLOAD ẢNH
       const uploadRes = await axios.post(
-        "https://api.cloudinary.com/v1_1/dkjenslgr/image/upload", // Check lại Cloud Name
+        "https://api.cloudinary.com/v1_1/giathinh/image/upload", // Check lại Cloud Name
         data
       );
       const { url } = uploadRes.data;

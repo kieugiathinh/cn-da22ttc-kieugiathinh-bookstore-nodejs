@@ -6,6 +6,7 @@ import {
   FaHome,
   FaSignOutAlt,
   FaUsers,
+  FaBolt,
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 
@@ -21,6 +22,7 @@ const Menu = () => {
       title: "QUẢN LÝ",
       items: [
         { path: "/users", icon: <FaUsers />, label: "Người dùng" },
+        { path: "/flash-sales", icon: <FaBolt />, label: "Flash Sale" },
         { path: "/categories", icon: <FaList />, label: "Thể loại" },
         { path: "/products", icon: <FaBook />, label: "Sản phẩm" },
         { path: "/orders", icon: <FaClipboardList />, label: "Đơn hàng" },

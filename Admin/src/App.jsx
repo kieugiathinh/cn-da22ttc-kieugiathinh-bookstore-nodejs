@@ -8,6 +8,7 @@ import Banners from "./pages/Banners.jsx";
 import Product from "./pages/Product.jsx";
 import NewProduct from "./pages/NewProduct.jsx";
 import Categories from "./pages/Categories.jsx";
+import FlashSales from "./pages/FlashSales.jsx";
 
 const Layout = () => {
   return (
@@ -60,6 +61,10 @@ function App() {
         {
           path: "/newproduct",
           element: <NewProduct />,
+        },
+        {
+          path: "/flash-sales",
+          element: <FlashSales />,
         },
       ],
     },
