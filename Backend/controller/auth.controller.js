@@ -6,7 +6,7 @@ import generateToken from "../util/generateToken.js";
 // Route POST /api/v1/auth/register
 // @access public
 const registerUser = asyncHandler(async (req, res) => {
-  const { fullname, username, email, password } = req.body;
+  const { fullname, username, email, password, phone, role } = req.body;
 
   const userEmailExists = await User.findOne({ email });
   if (userEmailExists) {
@@ -25,6 +25,8 @@ const registerUser = asyncHandler(async (req, res) => {
     username,
     email,
     password,
+    phone,
+    role: role || 0,
   });
 
   if (user) {

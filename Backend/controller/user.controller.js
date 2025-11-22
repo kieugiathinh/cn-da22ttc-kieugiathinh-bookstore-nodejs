@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 // Update User
 const updateUser = asyncHandler(async (req, res) => {
-  if (req.body.role) {
+  if (req.body.role && req.user.role !== 1) {
     delete req.body.role;
   }
 
