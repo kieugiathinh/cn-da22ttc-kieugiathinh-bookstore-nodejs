@@ -1,105 +1,100 @@
-import { FaPlus, FaTrash, FaSave } from "react-icons/fa";
+import { FaPlus, FaSave, FaCloudUploadAlt } from "react-icons/fa";
 import axios from "axios";
 import { userRequest } from "../requestMethods";
-import { useState } from "react";
-import Swal from "sweetalert2"; // Dùng để thông báo
-
-// Dữ liệu thể loại sách giả định (Admin có thể fetch từ API thực tế)
-const BOOK_CATEGORIES = [
-  "Tiểu thuyết",
-  "Kinh tế",
-  "Tâm lý - Kỹ năng sống",
-  "Khoa học",
-  "Lịch sử",
-  "Văn học nước ngoài",
-  "Truyện tranh",
-  "Thiếu nhi",
-  "Huyền ảo",
-];
+import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom"; // Import để chuyển trang
 
 const NewProduct = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [inputs, setInputs] = useState({});
-  const [uploadStatus, setUploadStatus] = useState("Sẵn sàng tải ảnh");
+  const [cat, setCat] = useState(""); // Lưu ID thể loại (1 cái duy nhất)
+  const [categories, setCategories] = useState([]); // Dữ liệu thể loại từ API
+  const [uploadStatus, setUploadStatus] = useState("");
+  const navigate = useNavigate();
 
-  // Thay thế concern/skintype bằng categories (Mảng Thể loại được chọn)
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  // 1. Load danh sách thể loại từ Backend khi vào trang
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const res = await userRequest.get("/categories");
+        setCategories(res.data);
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Lỗi", "Không thể tải danh sách thể loại", "error");
+      }
+    };
+    getCategories();
+  }, []);
 
-  // 1. Xử lý chọn ảnh
+  // 2. Xử lý chọn ảnh
   const imageChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedImage(e.target.files[0]);
     }
   };
 
-  // 2. Xử lý chọn Thể loại (Thêm vào mảng)
-  const handleCategorySelect = (e) => {
-    const value = e.target.value;
-    if (value && !selectedCategories.includes(value)) {
-      setSelectedCategories((prev) => [...prev, value]);
-      // Reset select box về default sau khi chọn
-      e.target.value = "";
-    }
-  };
-
-  // 3. Xử lý xóa Thể loại khỏi mảng
-  const handleRemoveCategory = (value) => {
-    setSelectedCategories((prev) => prev.filter((cat) => cat !== value));
-  };
-
-  // 4. Xử lý thay đổi Input thông thường
+  // 3. Xử lý nhập liệu text
   const handleChange = (e) => {
     setInputs((prev) => {
       return { ...prev, [e.target.name]: e.target.value };
     });
   };
 
-  // 5. Xử lý Tải lên và Tạo Sản phẩm
+  // 4. Xử lý chọn Thể loại
+  const handleCatChange = (e) => {
+    setCat(e.target.value);
+  };
+
+  // 5. Xử lý Upload & Submit
   const handleUpload = async (e) => {
     e.preventDefault();
 
+    // Validate cơ bản
     if (!selectedImage) {
-      Swal.fire("Lỗi", "Vui lòng chọn ảnh bìa sách.", "warning");
+      Swal.fire("Cảnh báo", "Vui lòng chọn ảnh bìa sách.", "warning");
+      return;
+    }
+    if (!cat) {
+      Swal.fire("Cảnh báo", "Vui lòng chọn thể loại sách.", "warning");
       return;
     }
 
     setUploadStatus("Đang tải ảnh lên Cloudinary...");
     const data = new FormData();
     data.append("file", selectedImage);
-    data.append("upload_preset", "uploads");
+    data.append("upload_preset", "uploads"); // Đảm bảo preset này đúng trên Cloudinary của bạn
 
     try {
       // BƯỚC 1: UPLOAD ẢNH
       const uploadRes = await axios.post(
-        "https://api.cloudinary.com/v1_1/dkjenslgr/image/upload",
+        "https://api.cloudinary.com/v1_1/dkjenslgr/image/upload", // Check lại Cloud Name
         data
       );
-
       const { url } = uploadRes.data;
 
-      // BƯỚC 2: TẠO SẢN PHẨM TRONG DB
-      setUploadStatus("Đang lưu sách vào DB...");
-      await userRequest.post("/products", {
-        img: url,
-        ...inputs,
-        // Gửi mảng thể loại đã chọn
-        categories: selectedCategories,
-        // Đảm bảo inStock là boolean
-        inStock: inputs.inStock === "true",
-      });
+      // BƯỚC 2: TẠO SẢN PHẨM VÀO DB
+      setUploadStatus("Đang lưu vào cơ sở dữ liệu...");
 
-      Swal.fire("Thành công!", "Sản phẩm mới đã được tạo.", "success");
-      setUploadStatus("Hoàn tất!");
-      // Bạn có thể reset form tại đây nếu cần
-      setInputs({});
-      setSelectedImage(null);
-      setSelectedCategories([]);
+      const newProduct = {
+        ...inputs,
+        img: url,
+        category: cat, // Gửi ID thể loại
+        countInStock: Number(inputs.countInStock) || 0, // Chuyển sang số
+        originalPrice: Number(inputs.originalPrice),
+        discountedPrice: Number(inputs.discountedPrice) || 0,
+      };
+
+      await userRequest.post("/products", newProduct);
+
+      Swal.fire("Thành công!", "Sách mới đã được thêm vào kho.", "success");
+      navigate("/products"); // Quay về trang danh sách
     } catch (error) {
       console.error(error);
-      setUploadStatus("Tải lên thất bại 😔");
+      setUploadStatus("Thất bại");
       Swal.fire(
         "Lỗi!",
-        "Tạo sản phẩm thất bại. Vui lòng kiểm tra console.",
+        error.response?.data?.message || "Tạo sản phẩm thất bại.",
         "error"
       );
     }
@@ -108,36 +103,30 @@ const NewProduct = () => {
   return (
     <div className="flex-1 p-8 bg-gray-50 h-full overflow-y-auto">
       {/* HEADER */}
-      <div className="flex items-center justify-between pb-6 mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
-          ➕ Thêm Sản Phẩm Mới
-        </h1>
+      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-200">
+        <h1 className="text-3xl font-bold text-gray-800">➕ Thêm Sách Mới</h1>
       </div>
 
-      {/* FORM TẠO SẢN PHẨM */}
+      {/* FORM */}
       <div className="bg-white p-8 shadow-xl rounded-xl border border-gray-100">
         <form
           onSubmit={handleUpload}
           className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6"
         >
-          {/* CỘT TRÁI: Thông tin cơ bản và Giá */}
+          {/* --- CỘT TRÁI: THÔNG TIN CƠ BẢN --- */}
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-purple-600 border-b pb-2">
-              Thông tin Cơ bản
+              Thông tin chi tiết
             </h2>
 
             {/* Tên sách */}
             <div>
-              <label
-                htmlFor="title"
-                className="block mb-2 font-semibold text-gray-700"
-              >
+              <label className="block mb-2 font-semibold text-gray-700">
                 Tên Sách <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="title"
-                id="title"
                 placeholder="Ví dụ: Đắc Nhân Tâm"
                 onChange={handleChange}
                 required
@@ -145,112 +134,155 @@ const NewProduct = () => {
               />
             </div>
 
+            {/* Tác giả & Nhà xuất bản (MỚI) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">
+                  Tác giả <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="author"
+                  placeholder="Nguyễn Nhật Ánh..."
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">
+                  Nhà xuất bản <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="publisher"
+                  placeholder="NXB Trẻ..."
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+            </div>
+
             {/* Mô tả */}
             <div>
-              <label
-                htmlFor="desc"
-                className="block mb-2 font-semibold text-gray-700"
-              >
-                Mô tả chi tiết
+              <label className="block mb-2 font-semibold text-gray-700">
+                Mô tả nội dung
               </label>
               <textarea
                 name="desc"
-                id="desc"
                 rows="5"
-                placeholder="Nhập nội dung tóm tắt hoặc chi tiết về cuốn sách..."
+                placeholder="Tóm tắt nội dung sách..."
                 onChange={handleChange}
+                required
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 resize-none"
               />
             </div>
 
+            {/* Giá cả */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Giá Gốc */}
               <div>
-                <label
-                  htmlFor="originalPrice"
-                  className="block mb-2 font-semibold text-gray-700"
-                >
-                  Giá Gốc (VND)
+                <label className="block mb-2 font-semibold text-gray-700">
+                  Giá Bìa (VND) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   name="originalPrice"
-                  placeholder="250000"
+                  placeholder="100000"
                   onChange={handleChange}
+                  required
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
-              {/* Giá Khuyến Mãi */}
               <div>
-                <label
-                  htmlFor="discountedPrice"
-                  className="block mb-2 font-semibold text-gray-700"
-                >
-                  Giá Khuyến Mãi (VND)
+                <label className="block mb-2 font-semibold text-gray-700">
+                  Giá Bán (Sau giảm)
                 </label>
                 <input
                   type="number"
                   name="discountedPrice"
-                  placeholder="200000"
+                  placeholder="80000"
                   onChange={handleChange}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
             </div>
-
-            {/* Tồn kho */}
-            <div>
-              <label
-                htmlFor="inStock"
-                className="block mb-2 font-semibold text-gray-700"
-              >
-                Trạng thái Tồn kho
-              </label>
-              <select
-                id="inStock"
-                name="inStock"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                onChange={handleChange}
-                defaultValue={"true"}
-              >
-                <option value="true">Còn hàng (In Stock)</option>
-                <option value="false">Hết hàng (Out of Stock)</option>
-              </select>
-            </div>
           </div>
 
-          {/* CỘT PHẢI: Hình ảnh và Thuộc tính Sách */}
-          <div className="space-y-6 md:mt-0">
+          {/* --- CỘT PHẢI: PHÂN LOẠI & ẢNH --- */}
+          <div className="space-y-6">
             <h2 className="text-xl font-semibold text-purple-600 border-b pb-2">
-              Ảnh & Phân loại
+              Phân loại & Hình ảnh
             </h2>
 
-            {/* Input Ảnh */}
+            {/* Chọn Thể loại (Dropdown từ API) */}
             <div>
-              <label
-                htmlFor="file"
-                className="font-semibold text-gray-700 block mb-2"
-              >
-                Ảnh Bìa:
+              <label className="block mb-2 font-semibold text-gray-700">
+                Thể loại sách <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center space-x-4">
-                <div className="border-2 h-32 w-24 border-purple-300 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden">
-                  {!selectedImage ? (
-                    <label
-                      htmlFor="file"
-                      className="cursor-pointer text-purple-500 hover:text-purple-700 flex flex-col items-center"
-                    >
-                      <FaPlus className="text-xl" />
-                      <span className="text-xs mt-1">Chọn ảnh</span>
-                    </label>
-                  ) : (
+              <select
+                onChange={handleCatChange}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-white"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  -- Chọn thể loại --
+                </option>
+                {categories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Số lượng tồn kho (MỚI) */}
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">
+                Số lượng nhập kho <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="countInStock"
+                placeholder="Ví dụ: 50"
+                onChange={handleChange}
+                required
+                min="0"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+
+            {/* Upload Ảnh */}
+            <div>
+              <label className="font-semibold text-gray-700 block mb-2">
+                Ảnh Bìa Sách <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-purple-300 rounded-lg p-6 hover:bg-purple-50 transition cursor-pointer relative">
+                {!selectedImage ? (
+                  <label
+                    htmlFor="file"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <FaCloudUploadAlt className="text-4xl text-purple-500 mb-2" />
+                    <span className="text-sm text-gray-500">
+                      Nhấn để tải ảnh lên
+                    </span>
+                  </label>
+                ) : (
+                  <div className="relative w-full h-64">
                     <img
                       src={URL.createObjectURL(selectedImage)}
-                      alt="Book Cover Preview"
-                      className="w-full h-full object-cover"
+                      alt="Preview"
+                      className="w-full h-full object-contain rounded-md"
                     />
-                  )}
-                </div>
+                    <label
+                      htmlFor="file"
+                      className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow cursor-pointer hover:text-purple-600"
+                    >
+                      <FaCloudUploadAlt />
+                    </label>
+                  </div>
+                )}
                 <input
                   type="file"
                   id="file"
@@ -258,103 +290,22 @@ const NewProduct = () => {
                   style={{ display: "none" }}
                   accept="image/*"
                 />
-                <span
-                  className={`text-sm font-medium ${
-                    uploadStatus.includes("thành công")
-                      ? "text-green-600"
-                      : uploadStatus.includes("thất bại")
-                      ? "text-red-500"
-                      : "text-gray-500"
-                  }`}
-                >
-                  Trạng thái: {uploadStatus}
-                </span>
               </div>
+              {uploadStatus && (
+                <p className="text-center text-sm mt-2 text-blue-600 animate-pulse font-medium">
+                  {uploadStatus}
+                </p>
+              )}
             </div>
 
-            {/* Tác giả */}
-            <div>
-              <label
-                htmlFor="author"
-                className="block mb-2 font-semibold text-gray-700"
-              >
-                Tác giả
-              </label>
-              <input
-                type="text"
-                name="author"
-                placeholder="Tác giả"
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-
-            {/* Nhà xuất bản */}
-            <div>
-              <label
-                htmlFor="publisher"
-                className="block mb-2 font-semibold text-gray-700"
-              >
-                Nhà xuất bản
-              </label>
-              <input
-                type="text"
-                name="publisher"
-                placeholder="Nhà xuất bản"
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-
-            {/* Chọn Thể loại */}
-            <div>
-              <label
-                htmlFor="category"
-                className="block mb-2 font-semibold text-gray-700"
-              >
-                Thể loại (Chọn nhiều)
-              </label>
-              <select
-                name="categories"
-                id="category"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                onChange={handleCategorySelect}
-                defaultValue={""}
-              >
-                <option value="" disabled>
-                  Chọn thể loại sách...
-                </option>
-                {BOOK_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Hiển thị và xóa Thể loại đã chọn */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {selectedCategories.map((option) => (
-                <span
-                  key={option}
-                  className="inline-flex items-center px-3 py-1 text-sm font-medium bg-purple-100 text-purple-700 rounded-full"
-                >
-                  {option}
-                  <FaTrash
-                    className="cursor-pointer text-red-500 text-xs ml-2 hover:text-red-700 transition"
-                    onClick={() => handleRemoveCategory(option)}
-                  />
-                </span>
-              ))}
-            </div>
-
-            {/* Nút Tạo Sản phẩm */}
+            {/* Nút Submit */}
             <button
               type="submit"
-              className="w-full mt-8 flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-300"
-              disabled={!selectedImage || uploadStatus.includes("Đang tải")}
+              className="w-full mt-4 flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg shadow-lg transition duration-300 disabled:opacity-50"
+              disabled={uploadStatus.includes("Đang")}
             >
-              <FaSave className="mr-2" /> TẠO SẢN PHẨM MỚI
+              <FaSave className="mr-2 text-xl" />
+              {uploadStatus.includes("Đang") ? "ĐANG XỬ LÝ..." : "LƯU SÁCH MỚI"}
             </button>
           </div>
         </form>

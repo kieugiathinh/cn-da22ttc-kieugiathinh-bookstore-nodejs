@@ -22,8 +22,8 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      // Backend cần có .populate("category") để lấy được tên thể loại
       const res = await userRequest.get("/products");
-      // Map _id thành id cho các thao tác React
       setProducts(res.data.map((p) => ({ ...p, id: p._id })));
       setError(null);
     } catch (err) {
@@ -95,13 +95,11 @@ const Products = () => {
     <div className="flex-1 p-8 bg-gray-50 h-full overflow-y-auto">
       {/* HEADER VÀ NÚT TẠO MỚI */}
       <div className="flex items-center justify-between pb-6 border-b border-gray-200 mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
-          📚 Quản lý Sản phẩm
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-800">📚 Quản lý Sách</h1>
         <Link to="/newproduct">
           <button className="flex items-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300">
             <FaPlus className="mr-2" />
-            Thêm Sản Phẩm
+            Thêm Sách Mới
           </button>
         </Link>
       </div>
@@ -113,10 +111,10 @@ const Products = () => {
           <thead className="bg-purple-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Sản phẩm
+                Sách & Tác giả
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Mô tả
+                Thể loại
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Giá Bán
@@ -140,25 +138,34 @@ const Products = () => {
                 key={product.id}
                 className="hover:bg-gray-50 transition duration-150"
               >
-                {/* Cột Sản phẩm */}
+                {/* Cột Sản phẩm & Tác giả */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <img
-                      className="h-12 w-12 object-cover rounded-md mr-3 ring-1 ring-gray-200"
+                      className="h-14 w-10 object-cover rounded-sm mr-3 shadow-sm"
                       src={product.img || "https://via.placeholder.com/100"}
                       alt={product.title}
                     />
-                    <div className="text-sm font-semibold text-gray-900 max-w-sm truncate">
-                      {product.title}
+                    <div className="flex flex-col">
+                      <div
+                        className="text-sm font-bold text-gray-900 max-w-xs truncate"
+                        title={product.title}
+                      >
+                        {product.title}
+                      </div>
+                      <div className="text-xs text-gray-500 italic">
+                        {product.author || "Không rõ tác giả"}
+                      </div>
                     </div>
                   </div>
                 </td>
 
-                {/* Cột Mô tả */}
-                <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
-                  {product.desc
-                    ? product.desc.substring(0, 50) + "..."
-                    : "Không có mô tả"}
+                {/* Cột Thể loại (MỚI) */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-600">
+                    {/* Kiểm tra xem category có tồn tại và có name không */}
+                    {product.category?.name || "Chưa phân loại"}
+                  </span>
                 </td>
 
                 {/* Cột Giá Bán */}
@@ -166,21 +173,23 @@ const Products = () => {
                   {product.discountedPrice
                     ? product.discountedPrice.toLocaleString("vi-VN")
                     : product.originalPrice?.toLocaleString("vi-VN") ||
-                      "N/A"}{" "}
+                      "0"}{" "}
                   VND
                 </td>
 
-                {/* Cột Tồn kho */}
+                {/* Cột Tồn kho (Đã sửa logic đếm số lượng) */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                     ${
-                      product.inStock
+                      product.countInStock > 0
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {product.inStock ? "CÒN" : "HẾT"}
+                    {product.countInStock > 0
+                      ? `${product.countInStock} cuốn`
+                      : "Hết hàng"}
                   </span>
                 </td>
 
@@ -220,8 +229,8 @@ const Products = () => {
                 <span className="font-medium">
                   {Math.min(startIndex + ROWS_PER_PAGE, products.length)}
                 </span>{" "}
-                của <span className="font-medium">{products.length}</span> sản
-                phẩm
+                của <span className="font-medium">{products.length}</span> đầu
+                sách
               </p>
             </div>
             <div>
@@ -238,7 +247,7 @@ const Products = () => {
                 </button>
 
                 <span className="relative inline-flex items-center px-4 py-2 border border-purple-500 bg-purple-50 text-sm font-medium text-purple-700">
-                  Trang {currentPage} / {totalPages}
+                  Trang {currentPage} / {totalPages || 1}
                 </span>
 
                 <button

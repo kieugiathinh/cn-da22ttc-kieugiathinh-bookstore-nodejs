@@ -4,12 +4,12 @@ import {
   FaPlus,
   FaChevronLeft,
   FaChevronRight,
+  FaTimes, // Icon đóng modal
 } from "react-icons/fa";
 import { userRequest } from "../requestMethods";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
-// Số lượng category hiển thị trên mỗi trang
 const ROWS_PER_PAGE = 10;
 
 const Categories = () => {
@@ -18,12 +18,19 @@ const Categories = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- STATE CHO MODAL ---
+  const [showModal, setShowModal] = useState(false);
+  const [editingCatId, setEditingCatId] = useState(null); // Để biết đang Thêm hay Sửa
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+  });
+
   // 1. Hàm Tải dữ liệu
   const fetchCategories = async () => {
     try {
       setLoading(true);
       const res = await userRequest.get("/categories");
-
       setCategories(res.data);
       setError(null);
     } catch (err) {
@@ -38,82 +45,67 @@ const Categories = () => {
     fetchCategories();
   }, []);
 
-  const handleCreate = async () => {
-    const { value: formValues } = await Swal.fire({
-      title: "Thêm Thể Loại Mới",
-      html:
-        '<input id="swal-input-name" class="swal2-input" placeholder="Tên thể loại">' +
-        '<input id="swal-input-desc" class="swal2-input" placeholder="Mô tả (tùy chọn)">',
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Thêm",
-      cancelButtonText: "Hủy",
-      preConfirm: () => {
-        return {
-          name: document.getElementById("swal-input-name").value,
-          description: document.getElementById("swal-input-desc").value,
-        };
-      },
+  // 2. Reset Form
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
     });
+    setEditingCatId(null);
+  };
 
-    if (formValues) {
-      if (!formValues.name) {
-        Swal.fire("Lỗi", "Tên thể loại không được để trống", "error");
-        return;
-      }
-      try {
-        await userRequest.post("/categories", formValues);
+  // 3. Mở Modal Thêm mới
+  const handleOpenAddModal = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  // 4. Mở Modal Sửa
+  const handleOpenEditModal = (category) => {
+    setEditingCatId(category._id);
+    setFormData({
+      name: category.name,
+      description: category.description || "",
+    });
+    setShowModal(true);
+  };
+
+  // 5. Xử lý nhập liệu
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  // 6. Xử lý Lưu (Chung cho Thêm và Sửa)
+  const handleSave = async (e) => {
+    e.preventDefault();
+
+    // Validate cơ bản
+    if (!formData.name.trim()) {
+      Swal.fire("Lỗi", "Tên thể loại không được để trống", "warning");
+      return;
+    }
+
+    try {
+      if (editingCatId) {
+        // --- UPDATE ---
+        await userRequest.put(`/categories/${editingCatId}`, formData);
+        Swal.fire("Thành công", "Cập nhật thể loại thành công", "success");
+      } else {
+        // --- CREATE ---
+        await userRequest.post("/categories", formData);
         Swal.fire("Thành công", "Đã thêm thể loại mới", "success");
-        fetchCategories();
-      } catch (err) {
-        Swal.fire(
-          "Lỗi",
-          err.response?.data?.message || "Có lỗi xảy ra",
-          "error"
-        );
       }
+
+      setShowModal(false);
+      resetForm();
+      fetchCategories(); // Load lại dữ liệu
+    } catch (err) {
+      Swal.fire("Lỗi", err.response?.data?.message || "Có lỗi xảy ra", "error");
     }
   };
 
-  const handleEdit = async (category) => {
-    const { value: formValues } = await Swal.fire({
-      title: "Cập nhật Thể Loại",
-      html:
-        `<input id="swal-input-name" class="swal2-input" placeholder="Tên thể loại" value="${category.name}">` +
-        `<input id="swal-input-desc" class="swal2-input" placeholder="Mô tả" value="${
-          category.description || ""
-        }">`,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Lưu",
-      cancelButtonText: "Hủy",
-      preConfirm: () => {
-        return {
-          name: document.getElementById("swal-input-name").value,
-          description: document.getElementById("swal-input-desc").value,
-        };
-      },
-    });
-
-    if (formValues) {
-      if (!formValues.name) {
-        Swal.fire("Lỗi", "Tên thể loại không được để trống", "error");
-        return;
-      }
-      try {
-        await userRequest.put(`/categories/${category._id}`, formValues);
-        Swal.fire("Thành công", "Cập nhật thành công", "success");
-        fetchCategories();
-      } catch (err) {
-        Swal.fire(
-          "Lỗi",
-          err.response?.data?.message || "Có lỗi xảy ra",
-          "error"
-        );
-      }
-    }
-  };
-
+  // 7. Xử lý Xóa
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Xác nhận xóa?",
@@ -134,13 +126,14 @@ const Categories = () => {
       } catch (error) {
         Swal.fire(
           "Lỗi!",
-          "Xóa thất bại. Có thể có ràng buộc dữ liệu.",
+          "Xóa thất bại. Có thể có sách đang thuộc thể loại này.",
           "error"
         );
       }
     }
   };
 
+  // Logic Phân trang
   const totalPages = Math.ceil(categories.length / ROWS_PER_PAGE);
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
   const currentCategories = categories.slice(
@@ -170,7 +163,7 @@ const Categories = () => {
     );
 
   return (
-    <div className="flex-1 p-8 bg-gray-50 h-full overflow-y-auto">
+    <div className="flex-1 p-8 bg-gray-50 h-full overflow-y-auto relative">
       {/* HEADER */}
       <div className="flex items-center justify-between pb-6 border-b border-gray-200 mb-6">
         <h1 className="text-3xl font-bold text-gray-800">
@@ -178,7 +171,7 @@ const Categories = () => {
         </h1>
         <button
           className="flex items-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300"
-          onClick={handleCreate}
+          onClick={handleOpenAddModal} // Mở modal thêm
         >
           <FaPlus className="mr-2" />
           Thêm Thể Loại
@@ -191,9 +184,6 @@ const Categories = () => {
           <thead className="bg-purple-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Tên Thể Loại
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
@@ -203,10 +193,7 @@ const Categories = () => {
                 Ngày tạo
               </th>
               <th className="px-6 py-3 text-center text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Sửa
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Xóa
+                Thao tác
               </th>
             </tr>
           </thead>
@@ -216,9 +203,6 @@ const Categories = () => {
                 key={cat._id}
                 className="hover:bg-gray-50 transition duration-150"
               >
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate max-w-xs">
-                  {cat._id}
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
                   {cat.name}
                 </td>
@@ -229,22 +213,22 @@ const Categories = () => {
                   {new Date(cat.createdAt).toLocaleDateString("vi-VN")}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <FaEdit
-                    className="text-blue-500 cursor-pointer text-lg hover:text-blue-700 mx-auto"
-                    onClick={() => handleEdit(cat)}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <FaTrash
-                    className="text-red-500 cursor-pointer text-lg hover:text-red-700 mx-auto"
-                    onClick={() => handleDelete(cat._id)}
-                  />
+                  <div className="flex justify-center space-x-4">
+                    <FaEdit
+                      className="text-blue-500 cursor-pointer text-lg hover:text-blue-700"
+                      onClick={() => handleOpenEditModal(cat)} // Mở modal sửa
+                    />
+                    <FaTrash
+                      className="text-red-500 cursor-pointer text-lg hover:text-red-700"
+                      onClick={() => handleDelete(cat._id)}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
             {currentCategories.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">
+                <td colSpan="4" className="text-center py-4 text-gray-500">
                   Chưa có thể loại nào.
                 </td>
               </tr>
@@ -302,6 +286,77 @@ const Categories = () => {
           </div>
         </div>
       </div>
+
+      {/* ==================== MODAL (DIALOG) ==================== */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-20 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden transform transition-all scale-100">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center bg-purple-600 px-6 py-4">
+              <h2 className="text-xl font-bold text-white">
+                {editingCatId ? "Cập Nhật Thể Loại" : "Thêm Thể Loại Mới"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-white hover:text-gray-200"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body (Form) */}
+            <form onSubmit={handleSave} className="p-6 space-y-4">
+              {/* Tên thể loại */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên Thể Loại <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                  placeholder="Ví dụ: Tiểu thuyết"
+                />
+              </div>
+
+              {/* Mô tả */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mô tả
+                </label>
+                <textarea
+                  name="description"
+                  rows="3"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+                  placeholder="Mô tả ngắn về thể loại..."
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold shadow-lg"
+                >
+                  {editingCatId ? "Cập Nhật" : "Thêm Mới"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

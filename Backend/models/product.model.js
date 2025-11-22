@@ -1,77 +1,86 @@
 import mongoose from "mongoose";
 
-const ProductSchema = mongoose.Schema({
-  title: {
-    type: String,
-    require: true,
-  },
-
-  desc: {
-    type: String,
-    require: true,
-  },
-
-  whatinbox: {
-    type: String,
-  },
-
-  img: {
-    type: String,
-    require: true,
-  },
-
-  video: {
-    type: String,
-  },
-
-  wholesalePrice: {
-    type: Number,
-  },
-
-  wholesaleMinimumQuantity: {
-    type: Number,
-  },
-
-  categories: {
-    type: Array,
-  },
-
-  concern: {
-    type: Array,
-  },
-
-  brand: {
-    type: String,
-  },
-
-  skintype: {
-    type: Array,
-  },
-
-  originalPrice: {
-    type: Number,
-  },
-
-  discountedPrice: {
-    type: Number,
-  },
-
-  inStock: {
-    type: Boolean,
-    default: true,
-  },
-
-  ratings: [
-    {
-      star: { type: String },
-      name: { type: String },
-      comment: { type: String },
-      postedBy: { type: String },
+const ProductSchema = mongoose.Schema(
+  {
+    // 1. Tên sách (Title)
+    title: {
+      type: String,
+      required: true, // Bắt buộc
+      unique: true, // Tên sách không được trùng
+      trim: true,
     },
-  ],
-});
 
-ProductSchema.index({ "$**": "text" });
+    // 2. Tác giả (Author) - MỚI
+    author: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    // 3. Nhà xuất bản (Publisher) - MỚI (Thay thế cho brand)
+    publisher: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    // 4. Thể loại (Category) - Liên kết bảng Category
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+
+    // 5. Mô tả sách (Description)
+    desc: {
+      type: String,
+      required: true,
+    },
+
+    // 6. Hình ảnh (ImageURL)
+    img: {
+      type: String,
+      required: true,
+    },
+
+    // 7. Giá gốc (OriginalPrice)
+    originalPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    // 8. Giá khuyến mãi (DiscountedPrice)
+    discountedPrice: {
+      type: Number,
+      default: 0, // Nếu không giảm giá thì để 0 hoặc bằng giá gốc
+    },
+
+    // 9. Số lượng tồn kho (StockQuantity) - SỬA TỪ BOOLEAN SANG NUMBER
+    countInStock: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+
+    // 10. Đánh giá (Ratings) - Giữ nguyên tính năng này rất hay
+    ratings: [
+      {
+        star: { type: Number }, // Nên để Number để dễ tính toán trung bình
+        name: { type: String },
+        comment: { type: String },
+        postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Nên link tới User ID
+      },
+    ],
+  },
+  {
+    timestamps: true, // Tự động tạo trường CreatedAt và UpdatedAt
+  }
+);
+
+// Tạo index tìm kiếm theo Tên sách và Tác giả
+ProductSchema.index({ title: "text", author: "text" });
 
 const Product = mongoose.model("Product", ProductSchema);
 export default Product;
