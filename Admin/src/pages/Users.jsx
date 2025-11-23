@@ -193,7 +193,7 @@ const Users = () => {
                 Họ và tên
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Username
+                Tên đăng nhập
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Email

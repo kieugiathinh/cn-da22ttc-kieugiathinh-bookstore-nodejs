@@ -240,9 +240,9 @@ const FlashSales = () => {
                       }
                     >
                       {sale.isActive ? (
-                        <FaToggleOn className="text-green-500" />
+                        <FaToggleOn className="text-green-500 cursor-pointer" />
                       ) : (
-                        <FaToggleOff className="text-gray-400" />
+                        <FaToggleOff className="text-gray-400 cursor-pointer" />
                       )}
                     </button>
                   </div>
