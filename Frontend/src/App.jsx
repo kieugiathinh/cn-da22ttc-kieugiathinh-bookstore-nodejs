@@ -1,34 +1,65 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import {
+  RouterProvider,
+  createBrowserRouter,
+  Outlet,
+  Navigate, // Import thêm Navigate để chuyển hướng
+} from "react-router-dom";
+
+// Import các trang
+import Home from "./pages/Home"; // <--- BỔ SUNG IMPORT NÀY
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+import { useSelector } from "react-redux";
 
 function App() {
-  const [count, setCount] = useState(0);
+  // Lấy thông tin user từ Redux để kiểm tra đăng nhập
+  const user = useSelector((state) => state.user);
+  const currentUser = user.currentUser; // Biến này chứa info user hoặc null
+
+  const Layout = () => {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        {/* Thêm min-h để đẩy Footer xuống đáy nếu nội dung ngắn */}
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <Footer />
+      </div>
+    );
+  };
+
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <Layout />,
+      children: [
+        {
+          path: "/",
+          element: <Home />,
+        },
+        {
+          path: "/login",
+          // LOGIC: Nếu có user rồi thì đá về Home, chưa có thì mới hiện Login
+          element: currentUser ? <Navigate to="/" /> : <Login />,
+        },
+        {
+          // Đổi thành /register cho chuẩn với Navbar và Login component
+          path: "/register",
+          // LOGIC: Nếu có user rồi thì đá về Home
+          element: currentUser ? <Navigate to="/" /> : <Register />,
+        },
+      ],
+    },
+  ]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1 className="text-3xl font-bold underline">Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      <RouterProvider router={router} />
+    </div>
   );
 }
 
