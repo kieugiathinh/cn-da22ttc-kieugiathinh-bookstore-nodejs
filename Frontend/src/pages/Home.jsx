@@ -1,5 +1,29 @@
-function Home() {
-  return <div>Home</div>;
-}
+import Banner from "../components/Banner";
+import Category from "../components/Category";
+import FlashSale from "../components/FlashSale";
+import BestSeller from "../components/BestSeller";
+
+const Home = () => {
+  return (
+    <div className="bg-gray-100 min-h-screen pb-10">
+      {/* Wrapper giới hạn chiều rộng nội dung để căn giữa đẹp mắt */}
+      <div className="max-w-7xl mx-auto px-4 space-y-6 pt-6">
+        {/* 1. Banner Slider */}
+        <Banner />
+
+        {/* 2. Flash Sale */}
+        <FlashSale />
+
+        {/* 3. Danh mục thể loại */}
+        <Category />
+
+        {/* 4. Top Sách Bán Chạy */}
+        <BestSeller />
+
+        {/* Có thể thêm các section khác như "Sách mới", "Gợi ý hôm nay"... */}
+      </div>
+    </div>
+  );
+};
 
 export default Home;
