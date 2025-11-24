@@ -11,6 +11,7 @@ import {
 import Home from "./pages/Home"; // <--- BỔ SUNG IMPORT NÀY
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Cart from "./pages/Cart";
 
 import { useSelector } from "react-redux";
 
@@ -51,6 +52,10 @@ function App() {
           path: "/register",
           // LOGIC: Nếu có user rồi thì đá về Home
           element: currentUser ? <Navigate to="/" /> : <Register />,
+        },
+        {
+          path: "/cart",
+          element: <Cart />,
         },
       ],
     },
