@@ -12,6 +12,8 @@ import Home from "./pages/Home"; // <--- BỔ SUNG IMPORT NÀY
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Cart from "./pages/Cart";
+import ProductDetail from "./pages/ProductDetail";
+import MyAccount from "./pages/MyAccount";
 
 import { useSelector } from "react-redux";
 
@@ -56,6 +58,14 @@ function App() {
         {
           path: "/cart",
           element: <Cart />,
+        },
+        {
+          path: "/product/:productId",
+          element: <ProductDetail />,
+        },
+        {
+          path: "/myaccount",
+          element: user?.currentUser ? <MyAccount /> : <Home />,
         },
       ],
     },
