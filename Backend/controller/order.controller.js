@@ -1,20 +1,21 @@
 import Order from "../models/order.model.js";
 import asyncHandler from "express-async-handler";
 
-//Create Order
+// Create Order
 const createOrder = asyncHandler(async (req, res) => {
-  const newOrder = Order(req.body);
-  const savedOrder = await newOrder.save();
+  // Sửa: Thêm từ khóa 'new'
+  const newOrder = new Order(req.body);
 
-  if (!savedOrder) {
-    res.status(400);
-    throw new Error("Order was not created");
-  } else {
+  try {
+    const savedOrder = await newOrder.save();
     res.status(201).json(savedOrder);
+  } catch (err) {
+    res.status(400);
+    throw new Error("Order could not be created: " + err.message);
   }
 });
 
-//Update Order
+// Update Order
 const updateOrder = asyncHandler(async (req, res) => {
   const updatedOrder = await Order.findByIdAndUpdate(
     req.params.id,
@@ -27,10 +28,10 @@ const updateOrder = asyncHandler(async (req, res) => {
   );
 
   if (!updatedOrder) {
-    res.status(400);
-    throw new Error("Order was not updated");
+    res.status(404); // Sửa thành 404 Not Found
+    throw new Error("Order not found");
   } else {
-    res.status(201).json(updatedOrder);
+    res.status(200).json(updatedOrder);
   }
 });
 
@@ -39,42 +40,31 @@ const deleteOrder = asyncHandler(async (req, res) => {
   const order = await Order.findByIdAndDelete(req.params.id);
 
   if (!order) {
-    res.status(400);
-    throw new Error("Order was not deleted successfully");
+    res.status(404);
+    throw new Error("Order not found");
   } else {
-    res.status(201).json(order);
+    res.status(200).json({ message: "Order has been deleted" });
   }
 });
 
-// Get User Order
+// Get User Order (Sửa nhiều nhất tại đây)
 const getUserOrder = asyncHandler(async (req, res) => {
-  console.log("=== GET USER ORDER DEBUG ===");
-  console.log("User ID from params:", req.params.id);
-  
-  const orders = await Order.find({ userID: req.params.id }).exec();
-  console.log("Found orders:", orders.length);
-  console.log("Orders data:", orders);
+  // 1. Tìm theo userId
+  // 2. Sắp xếp giảm dần theo ngày tạo (Mới nhất lên đầu)
+  const orders = await Order.find({ userId: req.params.id }).sort({
+    createdAt: -1,
+  });
 
-  if (!orders || orders.length === 0) {
-    console.log("No orders found for user:", req.params.id);
-    res.status(404);
-    throw new Error("No orders were found for this user.");
-  } else {
-    console.log("Returning orders to frontend");
-    res.status(200).json(orders.reverse());
-  }
+  // QUAN TRỌNG: Không throw Error 404 ở đây.
+  // Luôn trả về mảng (có thể là mảng rỗng []) với status 200
+  res.status(200).json(orders);
 });
 
 // Get All Orders
 const getAllOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find();
-
-  if (!orders) {
-    res.status(400);
-    throw new Error("No order was not found or something went wrong");
-  } else {
-    res.status(200).json(orders);
-  }
+  // Sắp xếp mới nhất lên đầu
+  const orders = await Order.find().sort({ createdAt: -1 });
+  res.status(200).json(orders);
 });
 
 export { getAllOrders, getUserOrder, deleteOrder, createOrder, updateOrder };

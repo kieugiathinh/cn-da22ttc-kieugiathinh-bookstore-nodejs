@@ -1,124 +1,69 @@
 import express from "express";
 import Stripe from "stripe";
 import dotenv from "dotenv";
-import Order from "../models/order.model.js";
+
 dotenv.config();
 const router = express.Router();
+
+if (!process.env.STRIPE_KEY) {
+  console.error("❌ LỖI: Chưa cấu hình STRIPE_KEY trong file .env");
+}
+
 const stripe = new Stripe(process.env.STRIPE_KEY);
-let cart;
-let name;
-let email;
-let userID;
 
 router.post("/create-checkout-session", async (req, res) => {
-  const customer = await stripe.customers.create({
-    metadata: {
-      userID: req.body.userID,
-    },
-  });
-
-  userID = req.body.userID;
-  email = req.body.email;
-  name = req.body.name;
-  cart = req.body.cart;
-
-  const line_items = req.body.cart.products.map((product) => {
-    return {
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: product.title,
-          images: [product.img],
-          description: product.desc,
-          metadata: {
-            id: product._id,
-          },
-        },
-        unit_amount: product.price * 100,
-      },
-      quantity: product.quantity,
-    };
-  });
   try {
-    const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
-      line_items,
-      mode: "payment",
-      success_url: `${process.env.CLIENT_URL}/myorders`,
-      cancel_url: `${process.env.CLIENT_URL}/cart`,
-    });
+    const { cart, email, userId, name } = req.body;
 
-    res.send({ url: session.url });
-  } catch (error) {
-    res.status(500).send({ error: error.message });
-  }
-});
+    if (!cart || !cart.products || cart.products.length === 0) {
+      return res.status(400).json({ error: "Giỏ hàng trống" });
+    }
 
-// web hook
-let endpointSecret;
-// This is your Stripe CLI webhook secret for testing your endpoint locally.
-//let endpointSecret = "whsec_6937b9a6f28503c82f9ee84dc862521ec39dd69868aa6a3d2d649033b7df6e99";
+    // Tạo line_items cho Stripe
+    const line_items = cart.products.map((item) => {
+      // 1. Chuẩn bị dữ liệu sản phẩm cơ bản
+      const product_data = {
+        name: item.title,
+        // Stripe yêu cầu ảnh phải là link online hợp lệ
+        images: item.img ? [item.img] : ["https://via.placeholder.com/150"],
+        metadata: {
+          id: item._id,
+        },
+      };
 
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  (req, res) => {
-    const sig = req.headers["stripe-signature"];
-
-    let data;
-    let eventType;
-
-    if (endpointSecret) {
-      let event;
-      try {
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-        console.log("webhook verified ");
-      } catch (err) {
-        console.log("webhook error", err.message);
-        response.status(400).send(`Webhook Error: ${err.message}`);
-        return;
+      // 2. FIX LỖI STRIPE: Chỉ thêm description nếu nó có dữ liệu thực sự
+      if (item.desc && item.desc.trim() !== "") {
+        // Cắt ngắn mô tả để tránh quá dài gây lỗi (Stripe giới hạn)
+        product_data.description = item.desc.substring(0, 100) + "...";
       }
 
-      data = event.data.object;
-      eventType = event.type;
-    } else {
-      data = req.body.data.object;
-      eventType = req.body.type;
-    }
+      return {
+        price_data: {
+          currency: "vnd", // Hoặc 'usd' tùy tài khoản Stripe của bạn
+          product_data: product_data,
+          // Làm tròn giá tiền để tránh lỗi số thập phân
+          unit_amount: Math.round(item.price),
+        },
+        quantity: item.quantity,
+      };
+    });
 
-    // Handle the event
-    if (eventType === "checkout.session.completed") {
-      console.log("=== WEBHOOK DEBUG ===");
-      console.log("Event type:", eventType);
-      console.log("Customer ID:", data.customer);
-      console.log("User ID:", userID);
-      console.log("Name:", name);
-      console.log("Email:", email);
-      console.log("Cart products:", cart?.products);
-      console.log("Cart total:", cart?.total);
-      
-      stripe.customers
-        .retrieve(data.customer)
-        .then(async (customer) => {
-          console.log("Creating new order...");
-          const newOrder = Order({
-            name,
-            userID,
-            products: cart.products,
-            total: cart.total,
-            email,
-          });
-          const savedOrder = await newOrder.save();
-          console.log("Order created successfully:", savedOrder._id);
-        })
-        .catch((err) => {
-          console.log("Error creating order:", err.message);
-        });
-    }
+    // Tạo session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items,
+      mode: "payment",
+      success_url: `${process.env.CLIENT_URL}/success`,
+      cancel_url: `${process.env.CLIENT_URL}/cart`,
+      customer_email: email,
+      // metadata: { ... } // Tạm bỏ metadata phức tạp để tránh lỗi quá tải ký tự
+    });
 
-    // Return a 200 response to acknowledge receipt of the event
-    res.send().end();
+    res.status(200).json({ url: session.url });
+  } catch (error) {
+    console.error("❌ STRIPE ERROR:", error.message);
+    res.status(500).json({ error: error.message });
   }
-);
+});
 
 export default router;

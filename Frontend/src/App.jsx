@@ -14,6 +14,9 @@ import Register from "./pages/Register";
 import Cart from "./pages/Cart";
 import ProductDetail from "./pages/ProductDetail";
 import MyAccount from "./pages/MyAccount";
+import Order from "./pages/Order";
+import Success from "./pages/Success";
+import Checkout from "./pages/Checkout";
 
 import { useSelector } from "react-redux";
 
@@ -66,6 +69,18 @@ function App() {
         {
           path: "/myaccount",
           element: user?.currentUser ? <MyAccount /> : <Home />,
+        },
+        {
+          path: "/myorders",
+          element: user?.currentUser ? <Order /> : <Login />,
+        },
+        {
+          path: "/success",
+          element: <Success />,
+        },
+        {
+          path: "/checkout",
+          element: <Checkout />,
         },
       ],
     },

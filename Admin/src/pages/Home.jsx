@@ -25,8 +25,8 @@ const Home = () => {
   const [error, setError] = useState(null);
 
   // Hàm định dạng tiền tệ
-  const formatCurrency = (amount) => {
-    return amount ? amount.toLocaleString("vi-VN") + " VND" : "0 VND";
+  const formatCurrency = (total) => {
+    return total ? total.toLocaleString("vi-VN") + " VND" : "0 VND";
   };
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const Home = () => {
           .slice(0, 4)
           .map((order) => ({
             customer: order.name || "Khách ẩn danh",
-            amount: order.amount || 0,
+            total: order.total || 0,
             status:
               order.status === 2
                 ? "Đã giao"
@@ -277,7 +277,7 @@ const Home = () => {
                   {tx.customer}
                 </td>
                 <td className="py-3 px-4 text-sm font-semibold text-gray-800">
-                  {formatCurrency(tx.amount)}
+                  {formatCurrency(tx.total)}
                 </td>
                 <td className="py-3 px-4 text-sm">
                   <span
