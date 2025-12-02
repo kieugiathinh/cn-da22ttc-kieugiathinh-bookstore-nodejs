@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { userRequest } from "../requestMethods";
 import { FaBookOpen, FaListAlt } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const Category = () => {
   const [categories, setCategories] = useState([]);
@@ -26,18 +27,16 @@ const Category = () => {
 
       <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
         {categories.map((cat) => (
-          <div
-            key={cat._id}
-            className="group cursor-pointer flex flex-col items-center transition-transform hover:-translate-y-1"
-          >
-            <div className="w-20 h-20 rounded-full bg-purple-50 flex items-center justify-center mb-2 group-hover:bg-purple-100 border border-purple-100">
-              {/* Nếu có ảnh icon thì dùng img, không thì dùng icon mặc định */}
-              <FaBookOpen className="text-2xl text-purple-500" />
+          <Link to={`/products/${cat._id}`} key={cat._id}>
+            <div className="group cursor-pointer flex flex-col items-center transition-transform hover:-translate-y-1">
+              <div className="w-20 h-20 rounded-full bg-purple-50 flex items-center justify-center mb-2 group-hover:bg-purple-100 border border-purple-100 transition-colors">
+                <FaBookOpen className="text-2xl text-purple-500" />
+              </div>
+              <span className="text-sm font-medium text-gray-700 text-center group-hover:text-purple-600 transition-colors line-clamp-2">
+                {cat.name}
+              </span>
             </div>
-            <span className="text-sm font-medium text-gray-700 text-center group-hover:text-purple-600">
-              {cat.name}
-            </span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
