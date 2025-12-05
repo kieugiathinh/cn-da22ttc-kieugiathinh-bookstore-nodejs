@@ -1,14 +1,15 @@
 import { FaSave, FaCloudUploadAlt, FaArrowLeft } from "react-icons/fa";
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { userRequest } from "../requestMethods";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { userRequest } from "../../requestMethods";
 import axios from "axios";
 import Swal from "sweetalert2";
 
 const Product = () => {
   const location = useLocation();
   const navigate = useNavigate(); // Hook dùng để chuyển trang
-  const id = location.pathname.split("/")[2];
+  const { id } = useParams();
+  // const id = location.pathname.split("/")[3];
 
   const [product, setProduct] = useState({});
   const [inputs, setInputs] = useState({});
@@ -103,7 +104,7 @@ const Product = () => {
       // --- THAY ĐỔI Ở ĐÂY ---
       // Không hiện Swal thành công nữa
       // Chuyển hướng ngay lập tức về trang danh sách sản phẩm
-      navigate("/products");
+      navigate("/admin/products");
     } catch (error) {
       console.error(error);
       // Vẫn giữ thông báo lỗi để biết nếu có trục trặc
@@ -127,7 +128,7 @@ const Product = () => {
           ✏️ Chỉnh sửa sách
         </h1>
         <Link
-          to="/products"
+          to="/admin/products"
           className="flex items-center text-gray-600 hover:text-purple-600 transition"
         >
           <FaArrowLeft className="mr-2" /> Quay lại danh sách

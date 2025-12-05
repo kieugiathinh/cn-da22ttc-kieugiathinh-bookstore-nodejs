@@ -21,12 +21,12 @@ const Menu = () => {
     {
       title: "QUẢN LÝ",
       items: [
-        { path: "/users", icon: <FaUsers />, label: "Người dùng" },
-        { path: "/flash-sales", icon: <FaBolt />, label: "Flash Sale" },
-        { path: "/categories", icon: <FaList />, label: "Thể loại" },
-        { path: "/products", icon: <FaBook />, label: "Sản phẩm" },
-        { path: "/orders", icon: <FaClipboardList />, label: "Đơn hàng" },
-        { path: "/banners", icon: <FaElementor />, label: "Banner" },
+        { path: "/admin/users", icon: <FaUsers />, label: "Người dùng" },
+        { path: "/admin/flash-sales", icon: <FaBolt />, label: "Flash Sale" },
+        { path: "/admin/categories", icon: <FaList />, label: "Thể loại" },
+        { path: "/admin/products", icon: <FaBook />, label: "Sản phẩm" },
+        { path: "/admin/orders", icon: <FaClipboardList />, label: "Đơn hàng" },
+        { path: "/admin/banners", icon: <FaElementor />, label: "Banner" },
       ],
     },
   ];

@@ -9,7 +9,7 @@ import {
   FaArrowUp,
 } from "react-icons/fa";
 import { useEffect, useState } from "react";
-import { userRequest } from "../requestMethods"; // Đảm bảo đã import userRequest
+import { userRequest } from "../../requestMethods";
 
 const Home = () => {
   const [stats, setStats] = useState({

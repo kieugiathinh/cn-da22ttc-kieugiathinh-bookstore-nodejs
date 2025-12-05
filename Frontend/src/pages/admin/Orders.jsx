@@ -8,7 +8,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
 } from "react-icons/fa";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import Swal from "sweetalert2";
 
 const ROWS_PER_PAGE = 10;

@@ -127,14 +127,12 @@ const Navbar = () => {
 
                   {/* Link Admin (Chỉ hiện nếu role === 1) */}
                   {currentUser.role === 1 && (
-                    <a
-                      href="http://localhost:1301"
-                      target="_blank"
-                      rel="noreferrer"
+                    <Link
+                      to="/admin" // Chuyển hướng nội bộ sang router admin
                       className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold transition"
                     >
                       <FaUserCog className="inline mr-2" /> Trang Quản Trị
-                    </a>
+                    </Link>
                   )}
 
                   <Link

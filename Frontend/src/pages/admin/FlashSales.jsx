@@ -10,7 +10,7 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 

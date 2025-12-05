@@ -16,16 +16,16 @@ const router = express.Router();
 router.get("/active", getActiveFlashSale);
 
 // Admin: Mới được tạo và thêm sản phẩm
-// router.get("/all", protect, admin, getAllFlashSales);
-// router.post("/", protect, admin, createFlashSale);
-// router.post("/:id/add-product", protect, admin, addProductToFlashSale);
-// router.delete("/:id", protect, admin, deleteFlashSale);
-
-router.get("/all", getAllFlashSales);
-router.post("/", createFlashSale);
-router.post("/:id/add-product", addProductToFlashSale);
-router.delete("/:id", deleteFlashSale);
-router.put("/:id", updateFlashSale);
-router.delete("/:id/remove-product/:productId", removeProductFromFlashSale);
+router.get("/all", protect, admin, getAllFlashSales);
+router.post("/", protect, admin, createFlashSale);
+router.post("/:id/add-product", protect, admin, addProductToFlashSale);
+router.delete("/:id", protect, admin, deleteFlashSale);
+router.put("/:id", protect, admin, updateFlashSale);
+router.delete(
+  "/:id/remove-product/:productId",
+  protect,
+  admin,
+  removeProductFromFlashSale
+);
 
 export default router;

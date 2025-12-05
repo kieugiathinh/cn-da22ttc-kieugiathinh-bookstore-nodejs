@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import axios from "axios";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import Swal from "sweetalert2";
 
 const Banners = () => {

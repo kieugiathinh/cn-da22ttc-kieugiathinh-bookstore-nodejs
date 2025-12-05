@@ -1,6 +1,6 @@
 import { FaPlus, FaSave, FaCloudUploadAlt } from "react-icons/fa";
 import axios from "axios";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom"; // Import để chuyển trang
