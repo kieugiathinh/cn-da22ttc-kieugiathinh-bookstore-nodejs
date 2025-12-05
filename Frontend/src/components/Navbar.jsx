@@ -101,6 +101,7 @@ const Navbar = () => {
             >
               {/* Avatar */}
               <div className="flex items-center space-x-2 cursor-pointer py-2">
+                {/* Kiểm tra: Nếu có link avatar thì hiện ảnh, không thì hiện chữ cái đầu */}
                 {currentUser.avatar ? (
                   <img
                     src={currentUser.avatar}

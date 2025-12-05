@@ -59,7 +59,10 @@ const loginUser = asyncHandler(async (req, res) => {
       fullname: user.fullname,
       username: user.username,
       email: user.email,
+      phone: user.phone,
+      address: user.address,
       role: user.role,
+      avatar: user.avatar,
     });
   } else {
     res.status(401);

@@ -5,7 +5,7 @@ import {
   deleteUser,
   updateUser,
 } from "../controller/user.controller.js";
-import { protect, admin } from "../middleware/auth.middleware.js"; // Import middleware
+import { protect, admin } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
