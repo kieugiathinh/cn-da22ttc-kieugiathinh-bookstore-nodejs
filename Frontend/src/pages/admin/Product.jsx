@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { userRequest } from "../../requestMethods";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { CLOUDINARY_CONFIG } from "../../utils/constants";
 
 const Product = () => {
   const location = useLocation();
@@ -82,11 +83,8 @@ const Product = () => {
         setUploadStatus("Đang tải ảnh...");
         const data = new FormData();
         data.append("file", newSelectedImage);
-        data.append("upload_preset", "uploads");
-        const uploadRes = await axios.post(
-          "https://api.cloudinary.com/v1_1/dkjenslgr/image/upload",
-          data
-        );
+        data.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+        const uploadRes = await axios.post(CLOUDINARY_CONFIG.uploadUrl, data);
         imgUrl = uploadRes.data.url;
       }
 
