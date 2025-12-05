@@ -14,19 +14,21 @@ import Register from "./pages/Register";
 import Cart from "./pages/Cart";
 import ProductDetail from "./pages/ProductDetail";
 import MyAccount from "./pages/MyAccount";
+import Order from "./pages/Order";
+import Success from "./pages/Success";
+import Checkout from "./pages/Checkout";
+import ProductList from "./pages/ProductList";
 
 import { useSelector } from "react-redux";
 
 function App() {
-  // Lấy thông tin user từ Redux để kiểm tra đăng nhập
   const user = useSelector((state) => state.user);
-  const currentUser = user.currentUser; // Biến này chứa info user hoặc null
+  const currentUser = user.currentUser;
 
   const Layout = () => {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
-        {/* Thêm min-h để đẩy Footer xuống đáy nếu nội dung ngắn */}
         <div className="flex-1">
           <Outlet />
         </div>
@@ -46,13 +48,10 @@ function App() {
         },
         {
           path: "/login",
-          // LOGIC: Nếu có user rồi thì đá về Home, chưa có thì mới hiện Login
           element: currentUser ? <Navigate to="/" /> : <Login />,
         },
         {
-          // Đổi thành /register cho chuẩn với Navbar và Login component
           path: "/register",
-          // LOGIC: Nếu có user rồi thì đá về Home
           element: currentUser ? <Navigate to="/" /> : <Register />,
         },
         {
@@ -66,6 +65,22 @@ function App() {
         {
           path: "/myaccount",
           element: user?.currentUser ? <MyAccount /> : <Home />,
+        },
+        {
+          path: "/myorders",
+          element: user?.currentUser ? <Order /> : <Login />,
+        },
+        {
+          path: "/success",
+          element: <Success />,
+        },
+        {
+          path: "/checkout",
+          element: <Checkout />,
+        },
+        {
+          path: "/products/:category",
+          element: <ProductList />,
         },
       ],
     },

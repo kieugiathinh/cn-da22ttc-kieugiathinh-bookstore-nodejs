@@ -257,12 +257,24 @@ const Cart = () => {
                 </span>
               </div>
 
-              <button
-                onClick={handleCheckout}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3.5 rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition transform hover:-translate-y-0.5 active:scale-95"
-              >
-                THANH TOÁN NGAY
-              </button>
+              {user.currentUser && cart.products.length > 0 ? (
+                <Link to="/checkout">
+                  <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3.5 rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition transform hover:-translate-y-0.5 active:scale-95">
+                    TIẾN HÀNH THANH TOÁN
+                  </button>
+                </Link>
+              ) : (
+                <button
+                  onClick={() =>
+                    !user.currentUser
+                      ? toast.error("Vui lòng đăng nhập!")
+                      : toast.warning("Giỏ hàng trống!")
+                  }
+                  className="w-full bg-gray-300 text-gray-500 font-bold py-3.5 rounded-lg cursor-not-allowed"
+                >
+                  THANH TOÁN NGAY
+                </button>
+              )}
 
               <p className="text-xs text-gray-400 text-center mt-4">
                 Chấp nhận thanh toán qua thẻ Visa, Master, MoMo...

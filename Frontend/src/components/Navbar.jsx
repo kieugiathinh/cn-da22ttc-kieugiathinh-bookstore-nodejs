@@ -144,7 +144,7 @@ const Navbar = () => {
                     <FaUser className="inline mr-2" /> Tài khoản của tôi
                   </Link>
                   <Link
-                    to="/my-orders"
+                    to="/myorders"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition"
                   >
                     <FaClipboardList className="inline mr-2" /> Đơn mua

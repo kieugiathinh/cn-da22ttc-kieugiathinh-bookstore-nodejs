@@ -1,89 +1,124 @@
 import { useState, useEffect } from "react";
-import { FaBolt, FaChevronRight } from "react-icons/fa";
+import { FaBolt, FaChevronRight, FaClock } from "react-icons/fa";
 import { userRequest } from "../requestMethods";
 import ProductCard from "./ProductCard";
 
 const FlashSale = () => {
   const [products, setProducts] = useState([]);
-  // Giả lập thời gian kết thúc (2 tiếng từ bây giờ)
-  const [timeLeft, setTimeLeft] = useState(2 * 60 * 60);
+  const [endTime, setEndTime] = useState(null); // Lưu thời gian kết thúc thực tế
+  const [timeLeft, setTimeLeft] = useState(0); // Lưu số giây còn lại
 
+  // 1. Fetch Data
   useEffect(() => {
     const fetchFlashSale = async () => {
       try {
-        // Gọi API lấy Flash Sale đang active
         const res = await userRequest.get("/flash-sales/active");
         if (res.data) {
-          // Map dữ liệu cho khớp với ProductCard
+          // Map dữ liệu sản phẩm
           const mappedProducts = res.data.products.map((item) => ({
-            ...item.product, // Lấy thông tin gốc của sách
-            discountedPrice: item.discountPrice, // Ghi đè giá sale
-            sold: item.soldCount, // Lấy số lượng đã bán trong đợt sale
+            ...item.product,
+            discountedPrice: item.discountPrice,
+            sold: item.soldCount,
             quantityLimit: item.quantityLimit,
           }));
           setProducts(mappedProducts);
+
+          // Lưu thời gian kết thúc từ DB
+          setEndTime(new Date(res.data.endTime).getTime());
         }
       } catch (err) {
         console.error(err);
       }
     };
     fetchFlashSale();
-
-    // Logic đồng hồ đếm ngược
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
   }, []);
 
-  // Format giây thành HH:MM:SS
+  // 2. Logic đếm ngược chính xác
+  useEffect(() => {
+    if (!endTime) return;
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = (endTime - now) / 1000; // Chuyển sang giây
+
+      if (distance > 0) {
+        setTimeLeft(distance);
+      } else {
+        // Hết giờ -> Dừng đếm và có thể reload lại data hoặc ẩn đi
+        setTimeLeft(0);
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [endTime]);
+
+  // 3. Hàm Format hiển thị (HH : MM : SS)
   const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600)
-      .toString()
-      .padStart(2, "0");
-    const m = Math.floor((seconds % 3600) / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return { h, m, s };
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+
+    // Helper thêm số 0 đằng trước (vd: 05)
+    const pad = (num) => num.toString().padStart(2, "0");
+
+    return { h: pad(h), m: pad(m), s: pad(s) };
   };
+
   const time = formatTime(timeLeft);
 
-  if (products.length === 0) return null; // Nếu không có sale thì ẩn đi
+  // Nếu không có sản phẩm hoặc đã hết giờ thì ẩn
+  if (products.length === 0 || timeLeft <= 0) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm mb-8">
-      {/* Header Flash Sale */}
-      <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center text-orange-500 text-2xl font-extrabold italic uppercase tracking-tighter">
-            <FaBolt className="mr-2 text-yellow-400 animate-pulse" /> FLASH SALE
+    <div className="rounded-xl shadow-sm mb-8 overflow-hidden border border-red-200">
+      {/* --- HEADER STYLE FAHASA --- */}
+      {/* Sử dụng Background màu đỏ/cam đặc trưng */}
+      <div className="px-6 py-4 flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-red-600 to-orange-500 text-white">
+        <div className="flex items-center gap-6 mb-2 md:mb-0">
+          {/* Title có icon tia sét */}
+          <div className="flex items-center text-2xl font-extrabold italic uppercase tracking-tighter transform -skew-x-10">
+            <FaBolt className="mr-2 text-yellow-300 text-3xl animate-bounce" />
+            <span className="text-shadow-sm">Flash Sale</span>
           </div>
-          {/* Countdown Timer */}
-          <div className="flex items-center space-x-1 text-white font-bold">
-            <span className="text-gray-500 text-sm font-normal mr-2 text-black">
-              Kết thúc trong
+
+          {/* Đồng hồ đếm ngược nổi bật */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium opacity-90 hidden sm:inline-block">
+              Kết thúc sau
             </span>
-            <span className="bg-black px-2 py-1 rounded">{time.h}</span>
-            <span className="text-black">:</span>
-            <span className="bg-black px-2 py-1 rounded">{time.m}</span>
-            <span className="text-black">:</span>
-            <span className="bg-black px-2 py-1 rounded">{time.s}</span>
+            <div className="flex items-center font-bold text-red-600">
+              <div className="bg-white px-2 py-1 rounded-md min-w-[32px] text-center shadow-sm">
+                {time.h}
+              </div>
+              <span className="text-white mx-1 text-xl">:</span>
+              <div className="bg-white px-2 py-1 rounded-md min-w-[32px] text-center shadow-sm">
+                {time.m}
+              </div>
+              <span className="text-white mx-1 text-xl">:</span>
+              <div className="bg-white px-2 py-1 rounded-md min-w-[32px] text-center shadow-sm">
+                {time.s}
+              </div>
+            </div>
           </div>
         </div>
         <a
           href="/flash-sale"
-          className="text-purple-600 font-semibold text-sm flex items-center hover:text-purple-800"
+          className="group bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center backdrop-blur-sm border border-white/40"
         >
-          Xem tất cả <FaChevronRight className="ml-1 text-xs" />
+          Xem tất cả{" "}
+          <FaChevronRight className="ml-1 text-xs group-hover:translate-x-1 transition-transform" />
         </a>
       </div>
 
-      {/* Product List (Horizontal Scroll) */}
-      <div className="p-5 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {products.slice(0, 5).map((item) => (
-          <ProductCard key={item._id} product={item} isFlashSale={true} />
-        ))}
+      {/* --- PRODUCT LIST --- */}
+      {/* Nền trắng làm nổi bật sản phẩm */}
+      <div className="bg-white p-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {products.slice(0, 5).map((item) => (
+            <ProductCard key={item._id} product={item} isFlashSale={true} />
+          ))}
+        </div>
       </div>
     </div>
   );
