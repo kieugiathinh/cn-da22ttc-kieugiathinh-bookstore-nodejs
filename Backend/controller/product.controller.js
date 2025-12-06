@@ -62,47 +62,6 @@ const getProduct = asyncHandler(async (req, res) => {
   }
 });
 
-// // 5. Get All Products (Sửa nhiều nhất)
-// const getAllProducts = asyncHandler(async (req, res) => {
-//   const qNew = req.query.new;
-//   const qCategory = req.query.category;
-//   const qSearch = req.query.search;
-//   let products;
-
-//   try {
-//     if (qNew) {
-//       // SỬA LỖI CHÍNH TẢ: createAt -> createdAt
-//       products = await Product.find()
-//         .sort({ createdAt: -1 })
-//         .populate("category");
-//     } else if (qCategory) {
-//       // SỬA LOGIC: Tìm theo ID category duy nhất
-//       products = await Product.find({
-//         category: qCategory,
-//       }).populate("category");
-//     } else if (qSearch) {
-//       // Tìm kiếm text
-//       products = await Product.find({
-//         $text: {
-//           $search: qSearch,
-//           $caseSensitive: false,
-//           $diacriticSensitive: false,
-//         },
-//       }).populate("category");
-//     } else {
-//       // Mặc định lấy tất cả
-//       products = await Product.find()
-//         .sort({ createdAt: -1 }) // Mới nhất lên đầu
-//         .populate("category"); // QUAN TRỌNG
-//     }
-
-//     res.status(200).json(products);
-//   } catch (err) {
-//     res.status(500);
-//     throw new Error("Lỗi khi lấy danh sách sản phẩm");
-//   }
-// });
-
 const getAllProducts = asyncHandler(async (req, res) => {
   // Lấy các tham số từ URL
   const qNew = req.query.new;
