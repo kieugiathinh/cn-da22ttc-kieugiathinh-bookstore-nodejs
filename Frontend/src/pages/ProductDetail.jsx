@@ -16,6 +16,7 @@ const Product = () => {
   const [loading, setLoading] = useState(true);
 
   const dispatch = useDispatch();
+  const cart = useSelector((state) => state.cart);
 
   // 1. Fetch Product
   useEffect(() => {
@@ -63,11 +64,25 @@ const Product = () => {
 
   // 4. Add to Cart
   const handleAddToCart = () => {
+    // 1. Kiểm tra tồn kho cơ bản
     if (product.countInStock === 0) {
       toast.error("Sản phẩm đã hết hàng!");
       return;
     }
 
+    // 2. Kiểm tra trong giỏ hàng đã có sản phẩm này chưa
+    const existingItem = cart.products.find((item) => item._id === product._id);
+    const currentQtyInCart = existingItem ? existingItem.quantity : 0;
+
+    // 3. Logic chặn: Nếu (Trong giỏ + Muốn mua thêm) > Tồn kho
+    if (currentQtyInCart + quantity > product.countInStock) {
+      toast.warning("Số lượng vượt quá tồn kho!", {
+        description: `Bạn đã có ${currentQtyInCart} cuốn trong giỏ. Kho chỉ còn ${product.countInStock}.`,
+      });
+      return;
+    }
+
+    // 4. Nếu hợp lệ thì Dispatch
     dispatch(
       addProduct({
         _id: product._id,
@@ -75,6 +90,7 @@ const Product = () => {
         img: product.img,
         price: finalPrice,
         quantity,
+        countInStock: product.countInStock, // QUAN TRỌNG: Gửi kèm tồn kho để Redux biết đường chặn
       })
     );
 
@@ -166,7 +182,7 @@ const Product = () => {
                   <span className="text-green-600 font-medium flex items-center">
                     Còn hàng{" "}
                     <span className="text-gray-400 ml-1 text-xs">
-                      (Sẵn {product.countInStock})
+                      (Còn {product.countInStock} quyển)
                     </span>
                   </span>
                 ) : (
@@ -174,10 +190,6 @@ const Product = () => {
                 )}
               </div>
             </div>
-
-            <p className="text-gray-600 leading-relaxed mb-8 line-clamp-4">
-              {product.desc}
-            </p>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
               <div className="flex items-center border border-gray-300 rounded-lg">
