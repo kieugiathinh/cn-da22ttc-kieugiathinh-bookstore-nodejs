@@ -67,4 +67,44 @@ const getAllOrders = asyncHandler(async (req, res) => {
   res.status(200).json(orders);
 });
 
-export { getAllOrders, getUserOrder, deleteOrder, createOrder, updateOrder };
+// Cancel Order (User tự hủy)
+// PUT /api/v1/orders/:id/cancel
+const cancelOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    res.status(404);
+    throw new Error("Không tìm thấy đơn hàng");
+  }
+
+  // 1. Kiểm tra quyền sở hữu (Chỉ chủ đơn hàng mới được hủy)
+  // req.user._id lấy từ middleware protect
+  if (order.userId.toString() !== req.user._id.toString()) {
+    res.status(401);
+    throw new Error("Bạn không có quyền hủy đơn hàng này");
+  }
+
+  // 2. QUAN TRỌNG: Kiểm tra trạng thái
+  // Chỉ cho hủy khi status === 0 (Chờ xác nhận)
+  if (order.status !== 0) {
+    res.status(400);
+    throw new Error("Đơn hàng đã được xác nhận hoặc đang giao, không thể hủy!");
+  }
+
+  // 3. Cập nhật trạng thái thành 3 (Đã hủy)
+  order.status = 3;
+  const updatedOrder = await order.save();
+
+  res
+    .status(200)
+    .json({ message: "Hủy đơn hàng thành công", order: updatedOrder });
+});
+
+export {
+  getAllOrders,
+  getUserOrder,
+  deleteOrder,
+  createOrder,
+  updateOrder,
+  cancelOrder,
+};

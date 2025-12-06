@@ -63,4 +63,45 @@ const getAllUsers = asyncHandler(async (req, res) => {
   }
 });
 
-export { getAllUsers, getUser, deleteUser, updateUser };
+// ADMIN CREATE USER (Không tạo token, không ghi đè cookie)
+// POST /api/v1/users
+const createUser = asyncHandler(async (req, res) => {
+  const { fullname, username, email, password, phone, role } = req.body;
+
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    res.status(400);
+    throw new Error("Email đã tồn tại");
+  }
+
+  const usernameExists = await User.findOne({ username });
+  if (usernameExists) {
+    res.status(400);
+    throw new Error("Username đã tồn tại");
+  }
+
+  const user = await User.create({
+    fullname,
+    username,
+    email,
+    password, // Password sẽ được pre-save hash trong Model
+    phone: phone || "",
+    role: role || 0,
+  });
+
+  if (user) {
+    // CHỈ TRẢ VỀ DATA, KHÔNG GỌI generateToken()
+    res.status(201).json({
+      _id: user._id,
+      fullname: user.fullname,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    });
+  } else {
+    res.status(400);
+    throw new Error("Dữ liệu người dùng không hợp lệ");
+  }
+});
+
+export { getAllUsers, getUser, deleteUser, updateUser, createUser };
