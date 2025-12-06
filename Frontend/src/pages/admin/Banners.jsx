@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import axios from "axios";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import Swal from "sweetalert2";
+import { CLOUDINARY_CONFIG } from "../../utils/constants";
 
 const Banners = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -49,22 +50,18 @@ const Banners = () => {
     setUploadStatus("Đang tải ảnh lên Cloudinary...");
     const data = new FormData();
     data.append("file", selectedImage);
-    data.append("upload_preset", "uploads");
+    data.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
 
     try {
       // BƯỚC 1: UPLOAD ẢNH
-      const uploadRes = await axios.post(
-        "https://api.cloudinary.com/v1_1/dkjenslgr/image/upload",
-        data,
-        {
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadStatus(`Đang tải lên: ${percentCompleted}%`);
-          },
-        }
-      );
+      const uploadRes = await axios.post(CLOUDINARY_CONFIG.uploadUrl, data, {
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadStatus(`Đang tải lên: ${percentCompleted}%`);
+        },
+      });
 
       const { url } = uploadRes.data;
 

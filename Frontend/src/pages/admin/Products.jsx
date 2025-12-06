@@ -6,7 +6,7 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -96,7 +96,7 @@ const Products = () => {
       {/* HEADER VÀ NÚT TẠO MỚI */}
       <div className="flex items-center justify-between pb-6 border-b border-gray-200 mb-6">
         <h1 className="text-3xl font-bold text-gray-800">📚 Quản lý Sách</h1>
-        <Link to="/newproduct">
+        <Link to="/admin/newproduct">
           <button className="flex items-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300">
             <FaPlus className="mr-2" />
             Thêm Sách Mới
@@ -195,7 +195,7 @@ const Products = () => {
 
                 {/* CỘT SỬA */}
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <Link to={`/product/${product._id}`}>
+                  <Link to={`/admin/product/${product._id}`}>
                     <FaEdit
                       className="text-blue-500 cursor-pointer text-lg hover:text-blue-700 mx-auto"
                       title="Chỉnh sửa"

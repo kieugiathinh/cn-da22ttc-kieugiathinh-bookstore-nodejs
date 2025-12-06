@@ -10,9 +10,6 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-
-// 1. IMPORT ACTION logOut TỪ REDUX
-// (Bạn nhớ kiểm tra lại đường dẫn '../redux/userRedux' cho đúng với cấu trúc thư mục của bạn nhé)
 import { logOut } from "../redux/userRedux.js";
 
 const Navbar = () => {
@@ -104,12 +101,21 @@ const Navbar = () => {
             >
               {/* Avatar */}
               <div className="flex items-center space-x-2 cursor-pointer py-2">
-                <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold border border-purple-200 select-none">
-                  {/* Lấy chữ cái đầu của tên hoặc hiển thị 'U' */}
-                  {currentUser.fullname
-                    ? currentUser.fullname.charAt(0).toUpperCase()
-                    : "U"}
-                </div>
+                {/* Kiểm tra: Nếu có link avatar thì hiện ảnh, không thì hiện chữ cái đầu */}
+                {currentUser.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt="avatar"
+                    className="w-9 h-9 rounded-full object-cover border border-purple-200"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold border border-purple-200 select-none">
+                    {currentUser.fullname
+                      ? currentUser.fullname.charAt(0).toUpperCase()
+                      : "U"}
+                  </div>
+                )}
+
                 <span className="font-semibold text-gray-700 text-sm hidden lg:block max-w-[100px] truncate select-none">
                   {currentUser.fullname}
                 </span>
@@ -127,14 +133,12 @@ const Navbar = () => {
 
                   {/* Link Admin (Chỉ hiện nếu role === 1) */}
                   {currentUser.role === 1 && (
-                    <a
-                      href="http://localhost:1301"
-                      target="_blank"
-                      rel="noreferrer"
+                    <Link
+                      to="/admin" // Chuyển hướng nội bộ sang router admin
                       className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold transition"
                     >
                       <FaUserCog className="inline mr-2" /> Trang Quản Trị
-                    </a>
+                    </Link>
                   )}
 
                   <Link

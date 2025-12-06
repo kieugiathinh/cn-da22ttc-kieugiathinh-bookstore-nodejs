@@ -5,15 +5,13 @@ import {
   deleteUser,
   updateUser,
 } from "../controller/user.controller.js";
+import { protect, admin } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
 
-// Get All User
-router.get("/", getAllUsers);
-// Delete User
-router.delete("/:id", deleteUser);
-// Update User
-router.put("/:id", updateUser);
-// Get One User
-router.get("/find/:userId", getUser);
+router.get("/", protect, admin, getAllUsers);
+router.delete("/:id", protect, admin, deleteUser);
+router.put("/:id", protect, updateUser);
+router.get("/find/:id", getUser);
 
 export default router;

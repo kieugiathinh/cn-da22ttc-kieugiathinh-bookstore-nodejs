@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { logOut, loginSuccess } from "../redux/userRedux"; // Import loginSuccess để cập nhật Redux sau khi save
+import { logOut, loginSuccess } from "../redux/userRedux";
 import { userRequest } from "../requestMethods";
 import { useState, useEffect } from "react";
 import {
@@ -10,11 +10,14 @@ import {
   FaLock,
   FaSignOutAlt,
   FaSave,
+  FaCamera,
   FaIdBadge,
+  FaSpinner, // Import thêm icon Spinner
 } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { CLOUDINARY_CONFIG } from "../utils/constants";
+import { toast } from "sonner"; // 1. Dùng Sonner cho đẹp
 
 const MyAccount = () => {
   const user = useSelector((state) => state.user);
@@ -22,18 +25,22 @@ const MyAccount = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // State lưu thông tin form
+  // State cho form
   const [formData, setFormData] = useState({
     fullname: "",
     phone: "",
     address: "",
-    // Password states
+    avatar: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  // Load dữ liệu user vào form khi trang được tải
+  // State cho Upload & Loading
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false); // 2. State loading cho nút Lưu
+
   useEffect(() => {
     if (currentUser) {
       setFormData((prev) => ({
@@ -41,274 +48,302 @@ const MyAccount = () => {
         fullname: currentUser.fullname || "",
         phone: currentUser.phone || "",
         address: currentUser.address || "",
+        avatar: currentUser.avatar || "",
       }));
     }
   }, [currentUser]);
 
-  // Xử lý thay đổi input
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Xử lý Đăng xuất
   const handleLogout = () => {
     dispatch(logOut());
     navigate("/login");
   };
 
-  // Xử lý Cập nhật thông tin cá nhân
+  // --- XỬ LÝ CẬP NHẬT ---
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    setIsUpdating(true); // Bắt đầu loading
+
+    let avatarUrl = formData.avatar;
+
     try {
+      // 1. Upload ảnh (nếu có chọn mới)
+      if (selectedImage) {
+        const data = new FormData();
+        data.append("file", selectedImage);
+        data.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+
+        const uploadRes = await axios.post(CLOUDINARY_CONFIG.uploadUrl, data);
+        avatarUrl = uploadRes.data.url;
+      }
+
+      // 2. Update User
       const res = await userRequest.put(`/users/${currentUser._id}`, {
         fullname: formData.fullname,
         phone: formData.phone,
         address: formData.address,
+        avatar: avatarUrl,
       });
 
-      // Cập nhật lại Redux Store với thông tin mới
-      // Lưu ý: Cần merge thông tin cũ (token, role...) với thông tin mới
+      // 3. Update Redux
       dispatch(loginSuccess({ ...currentUser, ...res.data }));
 
-      toast.success("Cập nhật thông tin thành công!");
+      // 4. Thông báo thành công (Sonner)
+      toast.success("Cập nhật thành công!", {
+        description: "Thông tin cá nhân của bạn đã được lưu.",
+      });
     } catch (error) {
-      toast.error("Cập nhật thất bại. Vui lòng thử lại.");
+      console.error(error);
+      toast.error("Cập nhật thất bại", {
+        description: "Vui lòng kiểm tra lại kết nối mạng.",
+      });
+    } finally {
+      setIsUpdating(false); // Kết thúc loading
     }
   };
 
-  // Xử lý Đổi mật khẩu (Tùy chọn logic backend)
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error("Mật khẩu mới không khớp!");
+      toast.error("Mật khẩu xác nhận không khớp!");
       return;
     }
-    // Gọi API đổi pass ở đây (cần backend hỗ trợ endpoint change-password)
-    toast.info("Chức năng đổi mật khẩu đang phát triển");
+    toast.info("Tính năng đổi mật khẩu đang phát triển");
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white pt-10 pb-8 px-4 sm:px-6 lg:px-8">
-      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
+  // Component Input (Giữ nguyên)
+  const DisabledInput = ({ label, value, icon }) => (
+    <div>
+      <label className="block text-gray-500 text-sm font-medium mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+          {icon}
+        </div>
+        <input
+          type="text"
+          value={value}
+          disabled
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none select-none font-medium"
+        />
+      </div>
+    </div>
+  );
 
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-serif font-bold text-gray-800 mb-2">
-            Tài Khoản Của Tôi
+  const EditableInput = ({
+    label,
+    name,
+    value,
+    onChange,
+    icon,
+    type = "text",
+    placeholder = "",
+  }) => (
+    <div>
+      <label className="block text-gray-700 text-sm font-medium mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+          {icon}
+        </div>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white text-gray-800"
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      {/* Không cần ToastContainer nữa vì đã có ở main.jsx */}
+
+      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* HEADER */}
+        <div className="flex flex-col items-center p-8 border-b border-gray-100 bg-white">
+          <div className="relative group">
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
+              {previewUrl || formData.avatar ? (
+                <img
+                  src={previewUrl || formData.avatar}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-4xl text-purple-600 font-bold">
+                  {currentUser?.fullname
+                    ? currentUser.fullname.charAt(0).toUpperCase()
+                    : "U"}
+                </span>
+              )}
+            </div>
+            <label
+              htmlFor="avatar-upload"
+              className="absolute bottom-1 right-1 bg-purple-600 p-2.5 rounded-full shadow-md cursor-pointer hover:bg-purple-700 transition text-white border-2 border-white"
+            >
+              <FaCamera size={16} />
+              <input
+                id="avatar-upload"
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </label>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mt-4">
+            {currentUser?.fullname}
           </h1>
-          <p className="text-gray-600">
-            Quản lý thông tin cá nhân và bảo mật tài khoản
-          </p>
+          <div className="flex items-center mt-1 space-x-3">
+            <span className="text-gray-500 text-sm">
+              @{currentUser?.username}
+            </span>
+            <span className="text-gray-300">•</span>
+            <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                currentUser?.role === 1
+                  ? "bg-purple-100 text-purple-700"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {currentUser?.role === 1 ? "Quản trị viên" : "Thành viên"}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Account Info Banner */}
-          <div className="p-8 border-b border-rose-100 bg-rose-50/50">
-            <div className="flex items-center">
-              <div className="w-20 h-20 bg-white border-2 border-rose-200 rounded-full flex items-center justify-center mr-6 shadow-sm text-3xl text-rose-500 font-bold">
-                {currentUser?.fullname
-                  ? currentUser.fullname.charAt(0).toUpperCase()
-                  : "U"}
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  {currentUser?.fullname}
-                </h2>
-                <p className="text-gray-500 font-medium">
-                  @{currentUser?.username}
-                </p>
-                <span className="inline-block mt-2 px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded-full uppercase">
-                  {currentUser?.role === 1 ? "Admin" : "Thành viên"}
-                </span>
-              </div>
+        <div className="p-8 space-y-10">
+          {/* PHẦN 1: READ ONLY */}
+          <section>
+            <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center">
+              Thông Tin Tài Khoản
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <DisabledInput
+                label="Tên đăng nhập"
+                value={currentUser?.username}
+                icon={<FaIdBadge />}
+              />
+              <DisabledInput
+                label="Địa chỉ Email"
+                value={currentUser?.email}
+                icon={<FaEnvelope />}
+              />
             </div>
-          </div>
+          </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 p-8 md:p-12">
-            {/* --- CỘT TRÁI: THÔNG TIN CÁ NHÂN --- */}
-            <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center pb-2 border-b border-gray-100">
-                <FaUser className="text-rose-500 mr-3" />
-                Thông Tin Cá Nhân
-              </h3>
+          {/* PHẦN 2: EDITABLE FORM */}
+          <section className="border-t border-gray-100 pt-8">
+            <h2 className="text-lg font-bold text-gray-800 mb-5">
+              Thông Tin Cá Nhân
+            </h2>
+            <form onSubmit={handleUpdateProfile} className="space-y-5">
+              <EditableInput
+                label="Họ và Tên"
+                name="fullname"
+                value={formData.fullname}
+                onChange={handleChange}
+                icon={<FaUser />}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <EditableInput
+                  label="Số điện thoại"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  icon={<FaPhone />}
+                  placeholder="Nhập số điện thoại"
+                />
+                <EditableInput
+                  label="Địa chỉ"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  icon={<FaMapMarkerAlt />}
+                  placeholder="Nhập địa chỉ giao hàng"
+                />
+              </div>
 
-              <form onSubmit={handleUpdateProfile} className="space-y-5">
-                {/* Username (READ ONLY) */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Tên đăng nhập (Không thể sửa)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaIdBadge className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      value={currentUser?.username}
-                      disabled
-                      className="w-full pl-10 p-3 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Email (READ ONLY) */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Email (Không thể sửa)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaEnvelope className="text-gray-400" />
-                    </div>
-                    <input
-                      type="email"
-                      value={currentUser?.email}
-                      disabled
-                      className="w-full pl-10 p-3 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Full Name (EDITABLE) */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Họ và Tên
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaUser className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="fullname"
-                      value={formData.fullname}
-                      onChange={handleChange}
-                      className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Phone (EDITABLE) */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Số điện thoại
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaPhone className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="Thêm số điện thoại..."
-                      className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Address (EDITABLE) */}
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Địa chỉ giao hàng
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaMapMarkerAlt className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      placeholder="Thêm địa chỉ..."
-                      className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-
+              {/* NÚT LƯU CÓ LOADING STATE */}
+              <div className="flex justify-end mt-6">
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white py-3 rounded-lg font-bold shadow-md transition-all transform hover:-translate-y-0.5 flex items-center justify-center"
+                  disabled={isUpdating}
+                  className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all flex items-center cursor-pointer ${
+                    isUpdating
+                      ? "bg-purple-400 cursor-not-allowed text-white"
+                      : "bg-purple-600 hover:bg-purple-700 text-white hover:shadow-md hover:-translate-y-0.5"
+                  }`}
                 >
-                  <FaSave className="mr-2" />
-                  LƯU THAY ĐỔI
+                  {isUpdating ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" /> Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <FaSave className="mr-2" /> Lưu Thay Đổi
+                    </>
+                  )}
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
+          </section>
 
-            {/* --- CỘT PHẢI: BẢO MẬT --- */}
-            <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center pb-2 border-b border-gray-100">
-                <FaLock className="text-rose-500 mr-3" />
-                Bảo Mật
-              </h3>
-
-              <form
-                onSubmit={handleChangePassword}
-                className="space-y-5 bg-gray-50 p-6 rounded-xl border border-gray-100"
-              >
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Mật khẩu hiện tại
-                  </label>
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Mật khẩu mới
-                  </label>
-                  <input
-                    type="password"
-                    name="newPassword"
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 text-sm font-semibold mb-2">
-                    Xác nhận mật khẩu mới
-                  </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-white border border-rose-500 text-rose-600 hover:bg-rose-50 py-3 rounded-lg font-bold transition-colors flex items-center justify-center"
-                >
-                  ĐỔI MẬT KHẨU
-                </button>
-              </form>
-
-              <div className="mt-8 border-t pt-6">
+          {/* PHẦN 3: SECURITY */}
+          <section className="border-t border-gray-100 pt-8">
+            <h2 className="text-lg font-bold text-gray-800 mb-5">Bảo Mật</h2>
+            <form onSubmit={handleChangePassword} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <EditableInput
+                  label="Mật khẩu mới"
+                  name="newPassword"
+                  type="password"
+                  onChange={handleChange}
+                  icon={<FaLock />}
+                  placeholder="••••••••"
+                />
+                <EditableInput
+                  label="Xác nhận mật khẩu"
+                  name="confirmPassword"
+                  type="password"
+                  onChange={handleChange}
+                  icon={<FaLock />}
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="flex justify-end mt-6 space-x-4 items-center">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-lg font-bold transition-colors flex items-center justify-center shadow-lg"
+                  className="text-gray-500 hover:text-red-600 font-medium flex items-center transition px-4 py-2"
                 >
-                  <FaSignOutAlt className="mr-2" />
-                  ĐĂNG XUẤT
+                  <FaSignOutAlt className="mr-2" /> Đăng xuất
+                </button>
+                <button
+                  type="submit"
+                  className="bg-white border border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-2.5 rounded-lg font-semibold transition-all flex items-center"
+                >
+                  <FaLock className="mr-2" /> Đổi Mật Khẩu
                 </button>
               </div>
-            </div>
-          </div>
+            </form>
+          </section>
         </div>
       </div>
     </div>

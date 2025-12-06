@@ -6,19 +6,17 @@ import { FaFilter, FaSortAmountDown } from "react-icons/fa";
 
 const ProductList = () => {
   const location = useLocation();
-  // Lấy categoryId từ URL (ví dụ: /products/65a123... -> id = 65a123...)
   const catId = location.pathname.split("/")[2];
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sort, setSort] = useState("newest"); // State sắp xếp
+  const [sort, setSort] = useState("newest");
   const [categoryName, setCategoryName] = useState("");
 
   // 1. Fetch Data
   useEffect(() => {
     const getProducts = async () => {
       try {
-        // Gọi API lọc theo category
         const res = await userRequest.get(`/products?category=${catId}`);
         setProducts(res.data);
 

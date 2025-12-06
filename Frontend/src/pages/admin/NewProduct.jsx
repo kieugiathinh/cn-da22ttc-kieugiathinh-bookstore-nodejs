@@ -1,15 +1,16 @@
 import { FaPlus, FaSave, FaCloudUploadAlt } from "react-icons/fa";
 import axios from "axios";
-import { userRequest } from "../requestMethods";
+import { userRequest } from "../../requestMethods";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom"; // Import để chuyển trang
+import { useNavigate } from "react-router-dom";
+import { CLOUDINARY_CONFIG } from "../../utils/constants";
 
 const NewProduct = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [inputs, setInputs] = useState({});
-  const [cat, setCat] = useState(""); // Lưu ID thể loại (1 cái duy nhất)
-  const [categories, setCategories] = useState([]); // Dữ liệu thể loại từ API
+  const [cat, setCat] = useState("");
+  const [categories, setCategories] = useState([]);
   const [uploadStatus, setUploadStatus] = useState("");
   const navigate = useNavigate();
 
@@ -63,14 +64,11 @@ const NewProduct = () => {
     setUploadStatus("Đang tải ảnh lên Cloudinary...");
     const data = new FormData();
     data.append("file", selectedImage);
-    data.append("upload_preset", "bookstore_preset"); // Đảm bảo preset này đúng trên Cloudinary của bạn
+    data.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
 
     try {
       // BƯỚC 1: UPLOAD ẢNH
-      const uploadRes = await axios.post(
-        "https://api.cloudinary.com/v1_1/giathinh/image/upload", // Check lại Cloud Name
-        data
-      );
+      const uploadRes = await axios.post(CLOUDINARY_CONFIG.uploadUrl, data);
       const { url } = uploadRes.data;
 
       // BƯỚC 2: TẠO SẢN PHẨM VÀO DB
@@ -79,8 +77,8 @@ const NewProduct = () => {
       const newProduct = {
         ...inputs,
         img: url,
-        category: cat, // Gửi ID thể loại
-        countInStock: Number(inputs.countInStock) || 0, // Chuyển sang số
+        category: cat,
+        countInStock: Number(inputs.countInStock) || 0,
         originalPrice: Number(inputs.originalPrice),
         discountedPrice: Number(inputs.discountedPrice) || 0,
       };
@@ -88,7 +86,7 @@ const NewProduct = () => {
       await userRequest.post("/products", newProduct);
 
       Swal.fire("Thành công!", "Sách mới đã được thêm vào kho.", "success");
-      navigate("/products"); // Quay về trang danh sách
+      navigate("/admin/products");
     } catch (error) {
       console.error(error);
       setUploadStatus("Thất bại");
