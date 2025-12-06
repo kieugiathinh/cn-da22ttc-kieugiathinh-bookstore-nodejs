@@ -67,19 +67,18 @@ const ProductSchema = mongoose.Schema(
     // 10. Đánh giá (Ratings) - Giữ nguyên tính năng này rất hay
     ratings: [
       {
-        star: { type: Number }, // Nên để Number để dễ tính toán trung bình
+        star: { type: Number },
         name: { type: String },
         comment: { type: String },
-        postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Nên link tới User ID
+        postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       },
     ],
   },
   {
-    timestamps: true, // Tự động tạo trường CreatedAt và UpdatedAt
+    timestamps: true,
   }
 );
 
-// Tạo index tìm kiếm theo Tên sách và Tác giả
 ProductSchema.index({ title: "text", author: "text" });
 
 const Product = mongoose.model("Product", ProductSchema);

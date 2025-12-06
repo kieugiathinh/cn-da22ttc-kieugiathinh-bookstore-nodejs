@@ -4,9 +4,8 @@ import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { userRequest } from "../requestMethods";
 import { useDispatch, useSelector } from "react-redux";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { addProduct } from "../redux/cartRedux";
+import { toast } from "sonner";
 
 const Product = () => {
   const location = useLocation();
@@ -17,7 +16,6 @@ const Product = () => {
   const [loading, setLoading] = useState(true);
 
   const dispatch = useDispatch();
-  const cart = useSelector((state) => state.cart);
 
   // 1. Fetch Product
   useEffect(() => {
@@ -40,16 +38,14 @@ const Product = () => {
       setQuantity(quantity === 1 ? 1 : quantity - 1);
     }
     if (action === "inc") {
-      // Kiểm tra tồn kho nếu có
       if (product.countInStock && quantity >= product.countInStock) {
-        toast.warning("Đã đạt giới hạn số lượng trong kho!");
+        toast.warning(`Chỉ còn ${product.countInStock} sản phẩm trong kho!`);
         return;
       }
       setQuantity(quantity + 1);
     }
   };
 
-  // 3. Logic Tính giá (Ưu tiên: Giá sỉ -> Giá giảm -> Giá gốc)
   const calculatePrice = () => {
     if (
       product.wholesalePrice &&
@@ -67,9 +63,14 @@ const Product = () => {
 
   // 4. Add to Cart
   const handleAddToCart = () => {
+    if (product.countInStock === 0) {
+      toast.error("Sản phẩm đã hết hàng!");
+      return;
+    }
+
     dispatch(
       addProduct({
-        _id: product._id, // Dùng _id cho thống nhất
+        _id: product._id,
         title: product.title,
         img: product.img,
         price: finalPrice,
@@ -78,8 +79,7 @@ const Product = () => {
     );
 
     toast.success("Đã thêm vào giỏ hàng!", {
-      position: "bottom-right",
-      autoClose: 2000,
+      description: `${product.title} x ${quantity}`,
     });
   };
 
@@ -88,10 +88,7 @@ const Product = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen py-10">
-      <ToastContainer />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* --- PHẦN TRÊN: THÔNG TIN CHI TIẾT --- */}
         <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10 flex flex-col md:flex-row gap-10">
           {/* Cột Trái: Ảnh */}
           <div className="w-full md:w-2/5 flex justify-center">
@@ -106,7 +103,6 @@ const Product = () => {
 
           {/* Cột Phải: Thông tin */}
           <div className="w-full md:w-3/5 flex flex-col">
-            {/* Tiêu đề & Tác giả */}
             <h1 className="text-3xl font-bold text-gray-800 mb-2 leading-tight">
               {product.title}
             </h1>
@@ -125,15 +121,19 @@ const Product = () => {
               </span>
             </div>
 
-            {/* Đánh giá (Stars) */}
+            {/* --- FIX LỖI RATING --- */}
             <div className="flex items-center mb-6">
-              <Rating
-                initialValue={4.5} // Giá trị trung bình từ DB
-                readonly
-                size={20}
-                fillColor="#fbbf24" // Màu vàng
-                allowFraction
-              />
+              {/* BỌC BẰNG DIV FLEX ĐỂ ÉP NẰM NGANG */}
+              <div className="flex flex-row items-center">
+                <Rating
+                  initialValue={4.5}
+                  readonly
+                  size={20}
+                  fillColor="#fbbf24"
+                  allowFraction
+                  SVGstyle={{ display: "inline" }} // Thêm dòng này để chắc chắn icon SVG là inline
+                />
+              </div>
               <span className="ml-2 text-sm text-gray-500 underline cursor-pointer hover:text-purple-600">
                 (Xem 120 đánh giá)
               </span>
@@ -145,13 +145,11 @@ const Product = () => {
                 <span className="text-3xl font-extrabold text-red-600">
                   {finalPrice?.toLocaleString("vi-VN")} ₫
                 </span>
-                {/* Giá gốc gạch ngang nếu có giảm giá */}
                 {product.originalPrice > finalPrice && (
                   <span className="text-lg text-gray-400 line-through mb-1">
                     {product.originalPrice?.toLocaleString("vi-VN")} ₫
                   </span>
                 )}
-                {/* Badge giảm giá */}
                 {product.originalPrice > finalPrice && (
                   <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full mb-2">
                     -
@@ -161,23 +159,27 @@ const Product = () => {
                 )}
               </div>
 
-              {/* Thông báo giá sỉ */}
-              {product.wholesalePrice && (
-                <div className="mt-2 text-sm text-purple-700 font-medium bg-purple-50 inline-block px-3 py-1 rounded-lg border border-purple-200">
-                  🔥 Mua từ {product.wholesaleMinimumQuantity} cuốn giá chỉ{" "}
-                  {product.wholesalePrice?.toLocaleString()} ₫
-                </div>
-              )}
+              {/* --- HIỂN THỊ TỒN KHO (ĐƠN GIẢN HÓA) --- */}
+              <div className="mt-3 flex items-center text-sm">
+                <span className="text-gray-500 mr-2">Tình trạng:</span>
+                {product.countInStock > 0 ? (
+                  <span className="text-green-600 font-medium flex items-center">
+                    Còn hàng{" "}
+                    <span className="text-gray-400 ml-1 text-xs">
+                      (Sẵn {product.countInStock})
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-red-500 font-medium">Hết hàng</span>
+                )}
+              </div>
             </div>
 
-            {/* Mô tả ngắn (Nếu dài quá thì cắt bớt) */}
             <p className="text-gray-600 leading-relaxed mb-8 line-clamp-4">
               {product.desc}
             </p>
 
-            {/* Bộ chọn số lượng & Nút mua */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-              {/* Quantity Input */}
               <div className="flex items-center border border-gray-300 rounded-lg">
                 <button
                   onClick={() => handleQuantity("dec")}
@@ -196,17 +198,21 @@ const Product = () => {
                 </button>
               </div>
 
-              {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
+                disabled={product.countInStock === 0}
+                className={`flex-1 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2
+                        ${
+                          product.countInStock > 0
+                            ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-xl hover:scale-[1.02]"
+                            : "bg-gray-400 cursor-not-allowed"
+                        }`}
               >
                 <FaShoppingCart className="text-xl" />
-                THÊM VÀO GIỎ HÀNG
+                {product.countInStock > 0 ? "THÊM VÀO GIỎ HÀNG" : "HẾT HÀNG"}
               </button>
             </div>
 
-            {/* Chính sách cam kết (Trang trí) */}
             <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 border-t pt-4">
               <div className="flex items-center">
                 <FaStar className="text-yellow-400 mr-2" /> Cam kết chính hãng
@@ -227,7 +233,7 @@ const Product = () => {
           </div>
         </div>
 
-        {/* --- PHẦN DƯỚI: MÔ TẢ CHI TIẾT & ĐÁNH GIÁ --- */}
+        {/* --- PHẦN DƯỚI: MÔ TẢ & REVIEW --- */}
         <div className="mt-8 bg-white rounded-2xl shadow-sm p-6 md:p-10">
           <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6">
             Mô Tả Sản Phẩm
@@ -241,7 +247,7 @@ const Product = () => {
           <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6">
             Đánh Giá Khách Hàng
           </h2>
-          {/* Render list review giả định hoặc từ DB */}
+
           {product.ratings && product.ratings.length > 0 ? (
             <div className="space-y-6">
               {product.ratings.map((rate, index) => (
@@ -261,12 +267,16 @@ const Product = () => {
                         • Đã mua hàng
                       </span>
                     </div>
-                    <Rating
-                      initialValue={rate.star || 5}
-                      size={16}
-                      readonly
-                      fillColor="#fbbf24"
-                    />
+                    {/* FIX LỖI SAO Ở ĐÂY */}
+                    <div className="flex flex-row">
+                      <Rating
+                        initialValue={rate.star || 5}
+                        size={16}
+                        readonly
+                        fillColor="#fbbf24"
+                        SVGstyle={{ display: "inline" }} // Ép inline cho SVG
+                      />
+                    </div>
                     <p className="text-gray-600 mt-2 text-sm">{rate.comment}</p>
                   </div>
                 </div>
