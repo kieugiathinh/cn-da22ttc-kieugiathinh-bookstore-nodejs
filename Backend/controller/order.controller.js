@@ -29,7 +29,7 @@ const createOrder = asyncHandler(async (req, res) => {
   if (savedOrder) {
     for (const item of products) {
       await Product.findByIdAndUpdate(item.productId, {
-        $inc: { countInStock: -item.quantity }, // Trừ số lượng
+        $inc: { countInStock: -item.quantity, sold: item.quantity },
       });
     }
 
@@ -118,7 +118,7 @@ const cancelOrder = asyncHandler(async (req, res) => {
   for (const item of order.products) {
     // Cộng lại số lượng vào kho
     await Product.findByIdAndUpdate(item.productId, {
-      $inc: { countInStock: item.quantity }, // Cộng số lượng
+      $inc: { countInStock: item.quantity, sold: -item.quantity },
     });
   }
   // --------------------------------

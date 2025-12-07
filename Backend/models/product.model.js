@@ -64,7 +64,13 @@ const ProductSchema = mongoose.Schema(
       default: 0,
     },
 
-    // 10. Đánh giá (Ratings) - Giữ nguyên tính năng này rất hay
+    //đã bán
+    sold: {
+      type: Number,
+      default: 0,
+    },
+
+    //Đánh giá
     ratings: [
       {
         star: { type: Number },

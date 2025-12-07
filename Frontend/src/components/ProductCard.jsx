@@ -51,17 +51,17 @@ const ProductCard = ({ product, isFlashSale = false }) => {
           {/* Thanh trạng thái bán (Dành cho Flash Sale hoặc Best Seller) */}
           <div className="mt-3 relative">
             <div className="w-full bg-red-100 rounded-full h-4 relative overflow-hidden">
-              {/* Thanh tiến độ */}
               <div
                 className="bg-red-500 h-full absolute top-0 left-0 z-0"
                 style={{
                   width: `${Math.min(
-                    (product.sold / (product.quantityLimit || 100)) * 100,
+                    (product.sold / (product.sold + product.countInStock)) *
+                      100,
                     100
                   )}%`,
                 }}
               ></div>
-              {/* Text đè lên */}
+
               <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white z-10 uppercase tracking-wide">
                 <FaFire className="mr-1" /> Đã bán {product.sold || 0}
               </div>
