@@ -12,62 +12,12 @@ import {
   FaSave,
   FaCamera,
   FaIdBadge,
-  FaSpinner,
+  FaSpinner, // Import thêm icon Spinner
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CLOUDINARY_CONFIG } from "../utils/constants";
-import { toast } from "sonner";
-
-// --- 1. MANG RA NGOÀI ĐỂ KHÔNG BỊ RERENDER ---
-const DisabledInput = ({ label, value, icon }) => (
-  <div>
-    <label className="block text-gray-500 text-sm font-medium mb-1.5">
-      {label}
-    </label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-        {icon}
-      </div>
-      <input
-        type="text"
-        value={value || ""}
-        disabled
-        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none select-none font-medium"
-      />
-    </div>
-  </div>
-);
-
-// --- 2. MANG RA NGOÀI ---
-const EditableInput = ({
-  label,
-  name,
-  value,
-  onChange,
-  icon,
-  type = "text",
-  placeholder = "",
-}) => (
-  <div>
-    <label className="block text-gray-700 text-sm font-medium mb-1.5">
-      {label}
-    </label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-        {icon}
-      </div>
-      <input
-        type={type}
-        name={name}
-        value={value || ""}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white text-gray-800"
-      />
-    </div>
-  </div>
-);
+import { toast } from "sonner"; // 1. Dùng Sonner cho đẹp
 
 const MyAccount = () => {
   const user = useSelector((state) => state.user);
@@ -75,6 +25,7 @@ const MyAccount = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // State cho form
   const [formData, setFormData] = useState({
     fullname: "",
     phone: "",
@@ -85,9 +36,11 @@ const MyAccount = () => {
     confirmPassword: "",
   });
 
+  // State cho Upload & Loading
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChangingPass, setIsChangingPass] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -113,20 +66,30 @@ const MyAccount = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleLogout = () => {
+    dispatch(logOut());
+    navigate("/login");
+  };
+
+  // --- XỬ LÝ CẬP NHẬT ---
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    setIsUpdating(true);
+    setIsUpdating(true); // Bắt đầu loading
+
     let avatarUrl = formData.avatar;
 
     try {
+      // 1. Upload ảnh (nếu có chọn mới)
       if (selectedImage) {
         const data = new FormData();
         data.append("file", selectedImage);
         data.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+
         const uploadRes = await axios.post(CLOUDINARY_CONFIG.uploadUrl, data);
         avatarUrl = uploadRes.data.url;
       }
 
+      // 2. Update User
       const res = await userRequest.put(`/users/${currentUser._id}`, {
         fullname: formData.fullname,
         phone: formData.phone,
@@ -134,7 +97,10 @@ const MyAccount = () => {
         avatar: avatarUrl,
       });
 
+      // 3. Update Redux
       dispatch(loginSuccess({ ...currentUser, ...res.data }));
+
+      // 4. Thông báo thành công (Sonner)
       toast.success("Cập nhật thành công!", {
         description: "Thông tin cá nhân của bạn đã được lưu.",
       });
@@ -144,38 +110,113 @@ const MyAccount = () => {
         description: "Vui lòng kiểm tra lại kết nối mạng.",
       });
     } finally {
-      setIsUpdating(false);
+      setIsUpdating(false); // Kết thúc loading
     }
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
+
+    // 1. Validate cơ bản
+    if (
+      !formData.currentPassword ||
+      !formData.newPassword ||
+      !formData.confirmPassword
+    ) {
+      toast.warning("Vui lòng nhập đầy đủ các trường mật khẩu");
+      return;
+    }
+
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error("Mật khẩu xác nhận không khớp!");
       return;
     }
 
-    // Gọi API đổi mật khẩu ở đây
+    if (formData.newPassword.length < 6) {
+      toast.warning("Mật khẩu mới phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    setIsChangingPass(true);
+
     try {
+      // 2. Gọi API
       await userRequest.put("/users/update-password", {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
       });
+
+      // 3. Thành công
       toast.success("Đổi mật khẩu thành công!");
-      // Reset form mật khẩu
+
+      // Reset form mật khẩu cho sạch
       setFormData((prev) => ({
         ...prev,
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       }));
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Đổi mật khẩu thất bại");
+    } catch (error) {
+      // 4. Xử lý lỗi (VD: Sai mật khẩu cũ)
+      toast.error(error.response?.data?.message || "Đổi mật khẩu thất bại");
+    } finally {
+      setIsChangingPass(false);
     }
   };
 
+  // Component Input (Giữ nguyên)
+  const DisabledInput = ({ label, value, icon }) => (
+    <div>
+      <label className="block text-gray-500 text-sm font-medium mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+          {icon}
+        </div>
+        <input
+          type="text"
+          value={value}
+          disabled
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none select-none font-medium"
+        />
+      </div>
+    </div>
+  );
+
+  const EditableInput = ({
+    label,
+    name,
+    value,
+    onChange,
+    icon,
+    type = "text",
+    placeholder = "",
+  }) => (
+    <div>
+      <label className="block text-gray-700 text-sm font-medium mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+          {icon}
+        </div>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white text-gray-800"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      {/* Không cần ToastContainer nữa vì đã có ở main.jsx */}
+
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {/* HEADER */}
         <div className="flex flex-col items-center p-8 border-b border-gray-100 bg-white">
@@ -281,6 +322,7 @@ const MyAccount = () => {
                 />
               </div>
 
+              {/* NÚT LƯU CÓ LOADING STATE */}
               <div className="flex justify-end mt-6">
                 <button
                   type="submit"
@@ -309,12 +351,13 @@ const MyAccount = () => {
           <section className="border-t border-gray-100 pt-8">
             <h2 className="text-lg font-bold text-gray-800 mb-5">Bảo Mật</h2>
             <form onSubmit={handleChangePassword} className="space-y-5">
-              <div className="grid grid-cols-1 gap-5 ">
+              <div className="grid grid-cols-1 gap-5">
+                {/* Mật khẩu hiện tại */}
                 <EditableInput
-                  label="Mật khẩu cũ"
+                  label="Mật khẩu hiện tại"
                   name="currentPassword"
                   type="password"
-                  value={formData.currentPassword}
+                  value={formData.currentPassword} // Binding value
                   onChange={handleChange}
                   icon={<FaLock />}
                   placeholder="••••••••"
@@ -325,7 +368,7 @@ const MyAccount = () => {
                     label="Mật khẩu mới"
                     name="newPassword"
                     type="password"
-                    value={formData.newPassword}
+                    value={formData.newPassword} // Binding value
                     onChange={handleChange}
                     icon={<FaLock />}
                     placeholder="••••••••"
@@ -334,7 +377,7 @@ const MyAccount = () => {
                     label="Xác nhận mật khẩu"
                     name="confirmPassword"
                     type="password"
-                    value={formData.confirmPassword}
+                    value={formData.confirmPassword} // Binding value
                     onChange={handleChange}
                     icon={<FaLock />}
                     placeholder="••••••••"
@@ -343,10 +386,32 @@ const MyAccount = () => {
               </div>
               <div className="flex justify-end mt-6 space-x-4 items-center">
                 <button
-                  type="submit"
-                  className="bg-white border border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-2.5 rounded-lg font-semibold transition-all flex items-center cursor-pointer"
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-gray-500 hover:text-red-600 font-medium flex items-center transition px-4 py-2"
                 >
-                  <FaLock className="mr-2" /> Đổi Mật Khẩu
+                  <FaSignOutAlt className="mr-2" /> Đăng xuất
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPass}
+                  className={`bg-white border border-purple-600 text-purple-600 px-6 py-2.5 rounded-lg font-semibold transition-all flex items-center
+                        ${
+                          isChangingPass
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-purple-50"
+                        }
+                    `}
+                >
+                  {isChangingPass ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" /> Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <FaLock className="mr-2" /> Đổi Mật Khẩu
+                    </>
+                  )}
                 </button>
               </div>
             </form>

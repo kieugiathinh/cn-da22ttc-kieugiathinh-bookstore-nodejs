@@ -104,4 +104,38 @@ const createUser = asyncHandler(async (req, res) => {
   }
 });
 
-export { getAllUsers, getUser, deleteUser, updateUser, createUser };
+// ĐỔI MẬT KHẨU
+// PUT /api/v1/users/update-password
+const updatePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // req.user lấy từ middleware protect
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    // 1. Kiểm tra mật khẩu cũ có đúng không
+    if (await user.matchPassword(currentPassword)) {
+      // 2. Gán mật khẩu mới
+      user.password = newPassword;
+
+      await user.save();
+
+      res.json({ message: "Đổi mật khẩu thành công!" });
+    } else {
+      res.status(401);
+      throw new Error("Mật khẩu hiện tại không đúng");
+    }
+  } else {
+    res.status(404);
+    throw new Error("Không tìm thấy người dùng");
+  }
+});
+
+export {
+  getAllUsers,
+  getUser,
+  deleteUser,
+  updateUser,
+  createUser,
+  updatePassword,
+};
