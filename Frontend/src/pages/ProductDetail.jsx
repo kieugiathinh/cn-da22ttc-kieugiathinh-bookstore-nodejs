@@ -139,7 +139,6 @@ const Product = () => {
 
             {/* --- FIX LỖI RATING --- */}
             <div className="flex items-center mb-6">
-              {/* BỌC BẰNG DIV FLEX ĐỂ ÉP NẰM NGANG */}
               <div className="flex flex-row items-center">
                 <Rating
                   initialValue={4.5}
@@ -152,6 +151,13 @@ const Product = () => {
               </div>
               <span className="ml-2 text-sm text-gray-500 underline cursor-pointer hover:text-purple-600">
                 (Xem 120 đánh giá)
+              </span>
+
+              <span className="border-l ml-4 text-sm text-gray-500 border-gray-300 pl-4">
+                Đã bán:{" "}
+                <span className="text-purple-600 font-medium">
+                  {product.sold || "Đang cập nhật"}
+                </span>
               </span>
             </div>
 

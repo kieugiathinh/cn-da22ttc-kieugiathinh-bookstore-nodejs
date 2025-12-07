@@ -2,7 +2,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Slider from "react-slick";
 import { useEffect, useState } from "react";
-import { userRequest } from "../requestMethods"; // Hoặc publicRequest nếu API banner công khai
+import { userRequest } from "../requestMethods";
 
 const Banner = () => {
   const [banners, setBanners] = useState([]);
@@ -15,8 +15,8 @@ const Banner = () => {
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 4000, // Tăng lên chút cho dễ nhìn
-    arrows: false, // Ẩn mũi tên 2 bên cho gọn (tùy chọn)
+    autoplaySpeed: 4000,
+    arrows: false,
   };
 
   // Hàm tải banner từ API
@@ -24,8 +24,8 @@ const Banner = () => {
     const getBanners = async () => {
       try {
         const res = await userRequest.get("/banners");
-        // Chỉ lấy các banner có link ảnh hợp lệ
-        setBanners(res.data);
+        const activeBanners = res.data.filter((b) => b.isActive === true);
+        setBanners(activeBanners);
       } catch (err) {
         console.log("Lỗi tải banner:", err);
       } finally {
