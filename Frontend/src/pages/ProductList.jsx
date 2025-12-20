@@ -8,6 +8,9 @@ const ProductList = () => {
   const location = useLocation();
   const catId = location.pathname.split("/")[2];
 
+  const queryParams = new URLSearchParams(location.search);
+  const searchTerm = queryParams.get("search");
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +19,7 @@ const ProductList = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [catId]);
+  }, [catId, searchTerm]);
 
   // 1. Lấy danh sách thể loại (cho Sidebar bên trái)
   useEffect(() => {
@@ -36,21 +39,29 @@ const ProductList = () => {
     const getProducts = async () => {
       setLoading(true);
       try {
-        // Nếu có catId thì gọi API lọc, không thì gọi API lấy hết
-        const url = catId ? `/products?category=${catId}` : "/products";
+        let url = "/products";
+
+        // ƯU TIÊN 1: Nếu có catId -> Lọc theo thể loại
+        if (catId) {
+          url = `/products?category=${catId}`;
+        }
+        // ƯU TIÊN 2: Nếu có searchTerm -> Tìm kiếm
+        else if (searchTerm) {
+          url = `/products?search=${encodeURIComponent(searchTerm)}`;
+        }
 
         const res = await userRequest.get(url);
         setProducts(res.data);
 
-        // Cập nhật tiêu đề trang tương ứng
+        // Cập nhật tiêu đề trang
         if (catId) {
           const currentCat = categories.find((c) => c._id === catId);
-          if (currentCat) {
-            setCategoryName(currentCat.name);
-          } else if (res.data.length > 0 && res.data[0].category) {
-            // Fallback: Lấy từ sản phẩm đầu tiên nếu có populate
+          if (currentCat) setCategoryName(currentCat.name);
+          else if (res.data.length > 0 && res.data[0].category)
             setCategoryName(res.data[0].category.name);
-          }
+        } else if (searchTerm) {
+          // Hiển thị từ khóa tìm kiếm
+          setCategoryName(`Kết quả tìm kiếm: "${searchTerm}"`);
         } else {
           setCategoryName("Tất cả sách");
         }
@@ -61,7 +72,7 @@ const ProductList = () => {
       }
     };
     getProducts();
-  }, [catId, categories]); // Thêm categories vào dependency để cập nhật tên khi load xong
+  }, [catId, searchTerm, categories]); // Thêm categories vào dependency để cập nhật tên khi load xong
 
   // 3. Logic Sắp xếp (Frontend Sort)
   useEffect(() => {

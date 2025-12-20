@@ -7,8 +7,10 @@ import {
   FaUserCog,
   FaBars,
 } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+// 1. Thêm useLocation vào import
+import { Link, useNavigate, useLocation } from "react-router-dom";
+// 2. Thêm useEffect vào import
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logOut } from "../redux/userRedux.js";
 
@@ -18,16 +20,26 @@ const Navbar = () => {
 
   const cart = useSelector((state) => state.cart);
   const user = useSelector((state) => state.user);
-  // Lấy currentUser từ userRedux. Nếu user chưa login, currentUser sẽ là null
   const currentUser = user.currentUser;
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  // 3. Khai báo location
+  const location = useLocation();
+
+  // --- 4. THÊM ĐOẠN CODE NÀY ĐỂ TỰ ĐỘNG XÓA TÌM KIẾM ---
+  useEffect(() => {
+    // Mỗi khi đường dẫn (pathname) thay đổi, reset ô tìm kiếm về rỗng
+    setSearch("");
+  }, [location.pathname]);
+  // -----------------------------------------------------
+
   // Xử lý tìm kiếm
   const handleSearch = () => {
     if (search.trim()) {
-      navigate(`/products/${search}`);
+      // Dùng encodeURIComponent để tìm kiếm tiếng Việt không bị lỗi
+      navigate(`/products?search=${encodeURIComponent(search.trim())}`);
     }
   };
 
@@ -37,15 +49,8 @@ const Navbar = () => {
     }
   };
 
-  // 2. XỬ LÝ ĐĂNG XUẤT (ĐÃ CẬP NHẬT)
   const handleLogout = () => {
-    // Gọi action logOut để xóa thông tin user trong Redux Store
     dispatch(logOut());
-
-    // (Tùy chọn) Nếu bạn có lưu token ở localStorage thì xóa luôn cho sạch
-    // localStorage.removeItem("persist:root"); // Nếu dùng Redux Persist
-
-    // Chuyển hướng về trang chủ hoặc trang login
     navigate("/login");
   };
 
@@ -65,6 +70,8 @@ const Navbar = () => {
             <input
               type="text"
               placeholder="Tìm kiếm sách yêu thích..."
+              // Gán giá trị value vào input để React kiểm soát (Controlled Component)
+              value={search}
               className="w-full py-2.5 pl-5 pr-12 border border-gray-300 rounded-full outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 text-sm"
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleEnterKey}
@@ -78,9 +85,8 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* RIGHT MENU */}
+        {/* ... (Phần RIGHT MENU giữ nguyên không đổi) ... */}
         <div className="flex-1 flex items-center justify-end space-x-6">
-          {/* CART */}
           <Link to="/cart">
             <div className="relative cursor-pointer group">
               <FaShoppingCart className="text-2xl text-gray-600 group-hover:text-purple-600 transition duration-200" />
@@ -92,16 +98,13 @@ const Navbar = () => {
             </div>
           </Link>
 
-          {/* USER / LOGIN */}
           {currentUser ? (
             <div
               className="relative"
               onMouseEnter={() => setIsDropdownOpen(true)}
               onMouseLeave={() => setIsDropdownOpen(false)}
             >
-              {/* Avatar */}
               <div className="flex items-center space-x-2 cursor-pointer py-2">
-                {/* Kiểm tra: Nếu có link avatar thì hiện ảnh, không thì hiện chữ cái đầu */}
                 {currentUser.avatar ? (
                   <img
                     src={currentUser.avatar}
@@ -121,7 +124,6 @@ const Navbar = () => {
                 </span>
               </div>
 
-              {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className="absolute right-0 top-full w-56 bg-white shadow-xl rounded-lg py-2 border border-gray-100 animate-fadeIn">
                   <div className="px-4 py-2 border-b border-gray-100">
@@ -131,10 +133,9 @@ const Navbar = () => {
                     </p>
                   </div>
 
-                  {/* Link Admin (Chỉ hiện nếu role === 1) */}
                   {currentUser.role === 1 && (
                     <Link
-                      to="/admin" // Chuyển hướng nội bộ sang router admin
+                      to="/admin"
                       className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold transition"
                     >
                       <FaUserCog className="inline mr-2" /> Trang Quản Trị
@@ -156,7 +157,7 @@ const Navbar = () => {
 
                   <div className="border-t border-gray-100 mt-2 pt-2">
                     <button
-                      onClick={handleLogout} // Gọi hàm logout
+                      onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition flex items-center"
                     >
                       <FaSignOutAlt className="inline mr-2" /> Đăng xuất

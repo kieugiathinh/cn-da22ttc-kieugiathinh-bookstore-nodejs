@@ -75,10 +75,9 @@ const getAllProducts = asyncHandler(async (req, res) => {
       filter.category = qCategory;
     }
     if (qSearch) {
-      filter.$text = {
-        $search: qSearch,
-        $caseSensitive: false,
-        $diacriticSensitive: false,
+      filter.title = {
+        $regex: qSearch,
+        $options: "i",
       };
     }
 
