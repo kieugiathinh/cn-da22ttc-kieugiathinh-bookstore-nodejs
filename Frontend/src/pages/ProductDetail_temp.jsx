@@ -3,48 +3,33 @@ import {
   FaPlus,
   FaShoppingCart,
   FaStar,
-  FaStarHalfAlt,
-  FaRegStar, // Import thêm FaRegStar
   FaBolt,
   FaFire,
   FaClock,
+  FaPaperPlane,
 } from "react-icons/fa";
+import { Rating } from "react-simple-star-rating";
 import { useLocation, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { userRequest } from "../requestMethods";
 import { useDispatch, useSelector } from "react-redux";
 import { addProduct } from "../redux/cartRedux";
 import { toast } from "sonner";
-import moment from "moment";
-
-// --- COMPONENT HIỂN THỊ SAO (MỚI) ---
-const StarRating = ({ rating, size = "text-sm" }) => {
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (rating >= i) {
-      stars.push(<FaStar key={i} className={`text-yellow-400 ${size}`} />);
-    } else if (rating >= i - 0.5) {
-      stars.push(
-        <FaStarHalfAlt key={i} className={`text-yellow-400 ${size}`} />
-      );
-    } else {
-      stars.push(<FaRegStar key={i} className={`text-gray-300 ${size}`} />);
-    }
-  }
-  return <div className="flex flex-row gap-0.5">{stars}</div>;
-};
-// ------------------------------------
+import moment from "moment"; // Cần cài: npm install moment (để format ngày tháng)
 
 const Product = () => {
   const location = useLocation();
   const id = location.pathname.split("/")[2];
-  const user = useSelector((state) => state.user.currentUser);
+  const user = useSelector((state) => state.user.currentUser); // Lấy user để check đăng nhập khi review
+
   const [product, setProduct] = useState({});
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
 
   // --- STATE CHO REVIEW ---
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState([]); // Lưu danh sách review
+  const [rating, setRating] = useState(0); // Lưu số sao người dùng chọn
+  const [comment, setComment] = useState(""); // Lưu nội dung comment
   const [loadingReviews, setLoadingReviews] = useState(true);
   // ------------------------
 
@@ -65,7 +50,7 @@ const Product = () => {
     getProduct();
   }, [id]);
 
-  // 2. Fetch Reviews
+  // 2. Fetch Reviews (GỌI API MỚI)
   const fetchReviews = async () => {
     try {
       const res = await userRequest.get("/reviews/" + id);
@@ -81,7 +66,44 @@ const Product = () => {
     fetchReviews();
   }, [id]);
 
-  // --- CÁC LOGIC CŨ (Flash Sale, Cart...) ---
+  // 3. Xử lý Gửi Đánh Giá (GỌI API MỚI)
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    if (!user) {
+      toast.warning("Vui lòng đăng nhập để đánh giá!");
+      return;
+    }
+    if (rating === 0) {
+      toast.warning("Vui lòng chọn số sao!");
+      return;
+    }
+    if (comment.trim() === "") {
+      toast.warning("Vui lòng viết nhận xét!");
+      return;
+    }
+
+    try {
+      await userRequest.post("/reviews/" + id, {
+        rating,
+        comment,
+      });
+
+      toast.success("Đánh giá thành công!");
+      setComment("");
+      setRating(0);
+
+      // Tải lại danh sách review và thông tin sản phẩm (để cập nhật lại số sao TB)
+      fetchReviews();
+      // Gọi lại product để update rating trung bình mới nhất trên UI
+      const resProd = await userRequest.get("/products/find/" + id);
+      setProduct(resProd.data);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi gửi đánh giá");
+    }
+  };
+
+  // --- CÁC LOGIC CŨ (Flash Sale, Cart...) GIỮ NGUYÊN ---
   const flashSaleRemaining = product.isFlashSale
     ? product.flashSaleLimit - product.flashSaleSold
     : 0;
@@ -176,7 +198,7 @@ const Product = () => {
     <div className="bg-gray-50 min-h-screen py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10 flex flex-col md:flex-row gap-10">
-          {/* CỘT ẢNH */}
+          {/* CỘT ẢNH (Giữ nguyên) */}
           <div className="w-full md:w-2/5 flex justify-center">
             <div className="relative w-full max-w-md aspect-[3/4] rounded-lg overflow-hidden shadow-lg border border-gray-100">
               {product.isFlashSale && (
@@ -212,20 +234,18 @@ const Product = () => {
               </span>
             </div>
 
-            {/* --- Rating hiển thị MỚI (Dùng Component StarRating) --- */}
-            {/* --- Rating hiển thị MỚI --- */}
-            <div className="flex items-center mb-6 gap-2">
-              {/* 1. Hiển thị Dải sao TRƯỚC */}
-              <div className="flex flex-row items-center pb-1">
-                <StarRating rating={product.rating || 0} size="text-lg" />
+            {/* --- Rating hiển thị theo Product Model Mới --- */}
+            <div className="flex items-center mb-6">
+              <div className="flex flex-row items-center pointer-events-none">
+                <Rating
+                  initialValue={product.rating || 0}
+                  readonly
+                  size={20}
+                  fillColor="#fbbf24"
+                  allowFraction
+                  style={{ display: "flex", flexDirection: "row" }}
+                />
               </div>
-
-              {/* 2. Hiển thị số điểm cụ thể SAU (Sẽ nằm bên phải sao) */}
-              {/* <span className="text-sm font-medium text-gray-800 ml-1">
-                {product.rating ? Number(product.rating).toFixed(1) : "0"}
-              </span> */}
-
-              {/* 3. Số lượng đánh giá & Đã bán */}
               <span className="ml-2 text-sm text-gray-500 underline cursor-pointer hover:text-purple-600">
                 (Xem {product.numReviews || 0} đánh giá)
               </span>
@@ -237,7 +257,7 @@ const Product = () => {
               </span>
             </div>
 
-            {/* --- KHU VỰC GIÁ --- */}
+            {/* --- KHU VỰC GIÁ (Giữ nguyên) --- */}
             <div
               className={`rounded-xl p-4 mb-6 ${
                 product.isFlashSale
@@ -295,7 +315,7 @@ const Product = () => {
               )}
             </div>
 
-            {/* Nút Mua */}
+            {/* Nút Mua (Giữ nguyên) */}
             <div className="mb-4 flex items-center text-sm">
               <span className="text-gray-500 mr-2">Tình trạng kho:</span>
               {product.countInStock > 0 ? (
@@ -358,9 +378,10 @@ const Product = () => {
           </div>
         </div>
 
-        {/* --- PHẦN DƯỚI: MÔ TẢ & REVIEW --- */}
+        {/* --- PHẦN DƯỚI: MÔ TẢ & REVIEW (CẬP NHẬT MỚI) --- */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-3">
+          {/* Cột Mô tả */}
+          <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10 mb-8">
               <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6">
                 Mô Tả Sản Phẩm
@@ -370,6 +391,7 @@ const Product = () => {
               </div>
             </div>
 
+            {/* --- KHU VỰC ĐÁNH GIÁ MỚI --- */}
             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10">
               <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6 flex justify-between items-center">
                 <span>Đánh Giá Khách Hàng</span>
@@ -414,12 +436,14 @@ const Product = () => {
                             {moment(rev.createdAt).fromNow()}
                           </span>
                         </div>
-
-                        {/* Rating Item MỚI */}
-                        <div className="mb-2">
-                          <StarRating rating={rev.rating} size="text-xs" />
+                        <div className="flex items-center mb-2">
+                          <Rating
+                            initialValue={rev.rating}
+                            size={14}
+                            readonly
+                            fillColor="#fbbf24"
+                          />
                         </div>
-
                         <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-lg inline-block">
                           {rev.comment}
                         </p>
@@ -440,6 +464,16 @@ const Product = () => {
                   Chưa có đánh giá nào. Hãy là người đầu tiên!
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="hidden lg:block">
+            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
+              <h3 className="font-bold text-gray-700 mb-4">Có thể bạn thích</h3>
+              {/* Chỗ này bạn có thể map ra danh sách sách cùng thể loại */}
+              <p className="text-sm text-gray-400 text-center">
+                Đang cập nhật...
+              </p>
             </div>
           </div>
         </div>

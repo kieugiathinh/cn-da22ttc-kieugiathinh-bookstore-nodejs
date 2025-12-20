@@ -5,16 +5,40 @@ import {
   FaEye,
   FaEyeSlash,
   FaReply,
-  FaSearch,
   FaStar,
+  FaStarHalfAlt,
+  FaRegStar,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
-import { Rating } from "react-simple-star-rating";
+// BỎ: import { Rating } from "react-simple-star-rating";
+
+// --- COMPONENT HIỂN THỊ SAO (READ-ONLY) ---
+const StarRating = ({ rating }) => {
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    if (rating >= i) {
+      stars.push(<FaStar key={i} className="text-yellow-400 text-xs" />);
+    } else if (rating >= i - 0.5) {
+      stars.push(<FaStarHalfAlt key={i} className="text-yellow-400 text-xs" />);
+    } else {
+      stars.push(<FaRegStar key={i} className="text-gray-300 text-xs" />);
+    }
+  }
+  return <div className="flex flex-row gap-0.5">{stars}</div>;
+};
+// ------------------------------------------
 
 const AdminReviews = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // --- STATE PHÂN TRANG ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // Hiển thị 10 dòng mỗi trang
+  // ------------------------
 
   // State cho Modal Reply
   const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
@@ -35,6 +59,15 @@ const AdminReviews = () => {
   useEffect(() => {
     fetchReviews();
   }, []);
+
+  // --- LOGIC TÍNH TOÁN PHÂN TRANG ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentReviews = reviews.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(reviews.length / itemsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  // ----------------------------------
 
   // --- XỬ LÝ ẨN/HIỆN ---
   const handleToggleHide = async (id, currentStatus) => {
@@ -104,12 +137,12 @@ const AdminReviews = () => {
     return <div className="p-10 text-center">Đang tải dữ liệu...</div>;
 
   return (
-    <div className="flex-1 p-8 bg-gray-50 h-full overflow-y-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-        💬 Quản lý Đánh giá ({reviews.length})
+    <div className="flex-1 p-8 bg-gray-50 h-full overflow-y-auto flex flex-col">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-between">
+        <span>💬 Quản lý Đánh giá ({reviews.length})</span>
       </h1>
 
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex-1 flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-purple-50 text-purple-700 uppercase text-xs font-bold">
@@ -122,7 +155,7 @@ const AdminReviews = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
-              {reviews.map((review) => (
+              {currentReviews.map((review) => (
                 <tr key={review._id} className="hover:bg-gray-50 transition">
                   {/* Cột Sản phẩm */}
                   <td className="p-4 max-w-xs">
@@ -154,15 +187,10 @@ const AdminReviews = () => {
                   {/* Cột Nội dung */}
                   <td className="p-4 max-w-md">
                     <div className="flex items-center mb-1">
-                      <Rating
-                        initialValue={review.rating}
-                        size={14}
-                        readonly
-                        fillColor="#fbbf24"
-                        style={{ display: "flex" }}
-                      />
+                      {/* THAY THẾ RATING CŨ */}
+                      <StarRating rating={review.rating} />
                     </div>
-                    <p className="text-gray-700 italic mb-2">
+                    <p className="text-gray-700 italic mb-2 line-clamp-2">
                       "{review.comment}"
                     </p>
 
@@ -229,9 +257,65 @@ const AdminReviews = () => {
                   </td>
                 </tr>
               ))}
+              {currentReviews.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="p-8 text-center text-gray-500">
+                    Chưa có đánh giá nào.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* --- THANH PHÂN TRANG (PAGINATION) --- */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-white">
+            <span className="text-sm text-gray-500">
+              Trang {currentPage} / {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev))
+                }
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                <FaChevronLeft className="text-xs" />
+              </button>
+
+              {/* Render số trang */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (number) => (
+                  <button
+                    key={number}
+                    onClick={() => paginate(number)}
+                    className={`px-3 py-1 border rounded text-sm font-medium transition ${
+                      currentPage === number
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "hover:bg-gray-50 text-gray-600"
+                    }`}
+                  >
+                    {number}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    prev < totalPages ? prev + 1 : prev
+                  )
+                }
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                <FaChevronRight className="text-xs" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL TRẢ LỜI */}

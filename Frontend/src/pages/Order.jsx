@@ -5,21 +5,60 @@ import {
   FaBoxOpen,
   FaPen,
   FaTimesCircle,
+  FaStar,
+  FaClipboardList, // Icon cho tab Tất cả
+  FaSpinner, // Icon cho tab Chờ xác nhận
+  FaTruck, // Icon cho tab Đang giao
+  FaBan, // Icon cho tab Hủy
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { userRequest } from "../requestMethods";
 import { useSelector } from "react-redux";
-import { Rating } from "react-simple-star-rating";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
+
+// --- COMPONENT CHỌN SAO ---
+const EditableStarRating = ({ rating, setRating }) => {
+  return (
+    <div className="flex flex-row">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <FaStar
+          key={star}
+          size={24}
+          className={`cursor-pointer transition-colors ${
+            star <= rating ? "text-yellow-400" : "text-gray-300"
+          }`}
+          onClick={() => setRating(star)}
+        />
+      ))}
+    </div>
+  );
+};
 
 const Order = () => {
   const user = useSelector((state) => state.user);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // --- STATE MỚI CHO TABS ---
+  const [activeTab, setActiveTab] = useState("all");
+  // --------------------------
+
   const [ratingData, setRatingData] = useState({});
   const [showRatingFor, setShowRatingFor] = useState(null);
+
+  // Danh sách các Tabs trạng thái
+  const tabs = [
+    { id: "all", label: "Tất cả", icon: <FaClipboardList /> },
+    {
+      id: 0,
+      label: "Chờ xác nhận",
+      icon: <FaSpinner className={activeTab === 0 ? "animate-spin" : ""} />,
+    },
+    { id: 1, label: "Đang giao", icon: <FaTruck /> },
+    { id: 2, label: "Hoàn thành", icon: <FaCheckCircle /> },
+    { id: 3, label: "Đã hủy", icon: <FaBan /> },
+  ];
 
   useEffect(() => {
     const getUserOrder = async () => {
@@ -27,7 +66,6 @@ const Order = () => {
         const res = await userRequest.get(
           `/orders/find/${user.currentUser._id}`
         );
-        // Backend đã xử lý trả về field 'isReviewed' nên Frontend chỉ cần hứng data
         setOrders(res.data);
         setLoading(false);
       } catch (error) {
@@ -40,6 +78,13 @@ const Order = () => {
       getUserOrder();
     }
   }, [user]);
+
+  // --- LOGIC LỌC ĐƠN HÀNG THEO TAB ---
+  const filteredOrders = orders.filter((order) => {
+    if (activeTab === "all") return true;
+    return order.status === activeTab;
+  });
+  // ------------------------------------
 
   const handleRatingChange = (productId, field, value) => {
     setRatingData((prev) => ({
@@ -68,8 +113,6 @@ const Order = () => {
       toast.success("Cảm ơn bạn đã đánh giá sản phẩm!");
       setShowRatingFor(null);
 
-      // --- CẬP NHẬT UI NGAY LẬP TỨC (OPTIMISTIC UPDATE) ---
-      // Tìm đúng đơn hàng và sản phẩm đó để set isReviewed = true
       setOrders((prevOrders) =>
         prevOrders.map((order) => {
           if (order._id === orderId) {
@@ -83,7 +126,6 @@ const Order = () => {
           return order;
         })
       );
-      // ----------------------------------------------------
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi khi gửi đánh giá.");
     }
@@ -124,261 +166,272 @@ const Order = () => {
       </div>
     );
 
-  if (orders.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <FaBoxOpen className="text-gray-300 text-9xl mb-4" />
-        <h2 className="text-2xl font-bold text-gray-600">
-          Bạn chưa có đơn hàng nào
-        </h2>
-        <Link
-          to="/"
-          className="mt-6 px-8 py-3 bg-purple-600 text-white font-bold rounded-full hover:bg-purple-700 transition shadow-lg"
-        >
-          Mua sắm ngay
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-            <FaCheckCircle className="text-green-600 text-3xl" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-gray-900">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
             Lịch Sử Đơn Hàng
           </h1>
+          <p className="text-gray-500">
+            Theo dõi và quản lý các đơn hàng của bạn
+          </p>
         </div>
 
-        <div className="space-y-8">
-          {orders.map((order) => (
-            <div
-              key={order._id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+        {/* --- THANH TABS TRẠNG THÁI (MỚI) --- */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 mb-8 flex flex-wrap justify-center gap-2 sticky top-4 z-10">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200
+                        ${
+                          activeTab === tab.id
+                            ? "bg-purple-600 text-white shadow-md transform scale-105"
+                            : "text-gray-500 hover:bg-gray-100 hover:text-purple-600"
+                        }
+                    `}
             >
-              {/* Header Đơn hàng */}
-              <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Đơn hàng
-                  </span>
-                  <p className="font-mono text-sm font-bold text-gray-800">
-                    #{order._id.slice(-8).toUpperCase()}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Ngày đặt
-                  </span>
-                  <p className="text-sm text-gray-800">
-                    {new Date(order.createdAt).toLocaleDateString("vi-VN")}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Tổng tiền
-                  </span>
-                  <p className="text-base font-bold text-purple-600">
-                    {order.total?.toLocaleString("vi-VN")} ₫
-                  </p>
-                </div>
+              <span className="mr-2 text-lg">{tab.icon}</span>
+              {tab.label}
+              {/* Badge số lượng đơn hàng cho mỗi tab */}
+              <span
+                className={`ml-2 text-xs py-0.5 px-2 rounded-full ${
+                  activeTab === tab.id
+                    ? "bg-white text-purple-600"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {tab.id === "all"
+                  ? orders.length
+                  : orders.filter((o) => o.status === tab.id).length}
+              </span>
+            </button>
+          ))}
+        </div>
+        {/* ----------------------------------- */}
 
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                      order.status === 2
-                        ? "bg-green-100 text-green-700"
-                        : order.status === 3
-                        ? "bg-red-100 text-red-700"
-                        : order.status === 1
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {order.status === 0
-                      ? "Chờ xác nhận"
-                      : order.status === 1
-                      ? "Đang xử lý"
-                      : order.status === 2
-                      ? "Giao thành công"
-                      : "Đã hủy"}
-                  </span>
-                  {order.status === 0 && (
-                    <button
-                      onClick={() => handleCancelOrder(order._id)}
-                      className="text-red-500 hover:bg-red-50 px-3 py-1 rounded-full text-xs font-bold border border-red-200 transition flex items-center"
-                      title="Hủy đơn hàng này"
-                    >
-                      <FaTimesCircle className="mr-1" /> Hủy Đơn
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Body Đơn hàng */}
-              <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                  <h3 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
-                    <FaBoxOpen className="mr-2 text-purple-500" /> Sản phẩm (
-                    {order.products?.length || 0})
-                  </h3>
-
-                  {order.products?.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="border-b border-gray-50 pb-6 last:border-0 last:pb-0"
-                    >
-                      <div className="flex gap-4">
-                        <img
-                          src={item.img}
-                          alt={item.title}
-                          className="w-20 h-28 object-cover rounded-md border border-gray-200 shadow-sm"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-bold text-gray-800 line-clamp-2 text-sm sm:text-base">
-                            {item.title}
-                          </h4>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Số lượng:{" "}
-                            <span className="font-medium text-gray-900">
-                              {item.quantity}
-                            </span>
-                          </p>
-                          <p className="text-sm text-purple-600 font-bold mt-1">
-                            {item.price?.toLocaleString("vi-VN")} ₫
-                          </p>
-
-                          {/* --- LOGIC HIỂN THỊ NÚT ĐÁNH GIÁ --- */}
-                          {order.status === 2 && (
-                            <div className="mt-3">
-                              {item.isReviewed ? (
-                                // TRƯỜNG HỢP 1: ĐÃ ĐÁNH GIÁ
-                                <span className="text-green-600 text-xs font-bold flex items-center bg-green-50 px-3 py-1.5 rounded-md inline-block border border-green-100">
-                                  <FaCheckCircle className="mr-1.5" /> Đã đánh
-                                  giá
-                                </span>
-                              ) : (
-                                // TRƯỜNG HỢP 2: CHƯA ĐÁNH GIÁ
-                                <button
-                                  onClick={() =>
-                                    setShowRatingFor(
-                                      showRatingFor === item.productId
-                                        ? null
-                                        : item.productId
-                                    )
-                                  }
-                                  className="text-xs flex items-center text-purple-600 border border-purple-600 px-3 py-1.5 rounded-md hover:bg-purple-50 transition font-bold"
-                                >
-                                  <FaPen className="mr-1.5" />
-                                  Viết đánh giá
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          {/* ----------------------------------- */}
-                        </div>
-                      </div>
-
-                      {/* Form Đánh giá */}
-                      {showRatingFor === item.productId && !item.isReviewed && (
-                        <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100 animate-fadeIn">
-                          <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-2">
-                              <Rating
-                                onClick={(rate) =>
-                                  handleRatingChange(
-                                    item.productId,
-                                    "star",
-                                    rate
-                                  )
-                                }
-                                size={24}
-                                fillColor="#fbbf24"
-                                initialValue={
-                                  ratingData[item.productId]?.star || 0
-                                }
-                                style={{ display: "flex" }}
-                              />
-                            </div>
-                            <textarea
-                              rows="3"
-                              placeholder="Chia sẻ cảm nhận..."
-                              className="w-full text-sm p-3 border border-gray-300 rounded-lg outline-none"
-                              onChange={(e) =>
-                                handleRatingChange(
-                                  item.productId,
-                                  "comment",
-                                  e.target.value
-                                )
-                              }
-                            />
-                            <div className="flex justify-end">
-                              <button
-                                onClick={() =>
-                                  submitRating(item.productId, order._id)
-                                }
-                                className="bg-purple-600 text-white text-sm font-bold py-2 px-6 rounded-lg cursor-pointer hover:bg-purple-700 transition"
-                              >
-                                Gửi đánh giá
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Cột Phải: Thông tin giao hàng (Giữ nguyên) */}
-                <div className="space-y-6 border-l border-gray-100 lg:pl-8">
-                  <div>
-                    <h3 className="font-bold text-gray-800 border-b pb-2 mb-3 flex items-center">
-                      <FaShippingFast className="mr-2 text-blue-500" /> Giao
-                      hàng tới
-                    </h3>
-                    <div className="text-sm text-gray-600 space-y-1.5">
-                      <p className="font-bold text-gray-800">
-                        {order.name || user.currentUser.fullname}
+        {filteredOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+            <FaBoxOpen className="text-gray-300 text-6xl mb-4" />
+            <h2 className="text-xl font-bold text-gray-600">
+              Chưa có đơn hàng nào ở mục này
+            </h2>
+            {activeTab !== "all" && (
+              <button
+                onClick={() => setActiveTab("all")}
+                className="mt-4 text-purple-600 font-bold hover:underline"
+              >
+                Xem tất cả đơn hàng
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {filteredOrders.map((order) => (
+              <div
+                key={order._id}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300"
+              >
+                {/* Header Đơn hàng */}
+                <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                    <div>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Đơn hàng
+                      </span>
+                      <p className="font-mono text-sm font-bold text-gray-800">
+                        #{order._id.slice(-8).toUpperCase()}
                       </p>
-                      <p>{order.phone || "Chưa cập nhật"}</p>
-                      <p>{order.address || order.email}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Ngày đặt
+                      </span>
+                      <p className="text-sm text-gray-800">
+                        {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                      </p>
                     </div>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-xl">
-                    <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase">
-                      Thanh toán
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between text-gray-600">
-                        <span>Phương thức</span>
-                        <span className="font-medium text-gray-800">
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block text-right mb-1">
+                        Tổng tiền
+                      </span>
+                      <p className="text-base font-bold text-purple-600 text-right">
+                        {order.total?.toLocaleString("vi-VN")} ₫
+                      </p>
+                    </div>
+
+                    {/* Chỉ hiện nút Hủy ở tab Tất cả hoặc Chờ xác nhận */}
+                    {order.status === 0 && (
+                      <button
+                        onClick={() => handleCancelOrder(order._id)}
+                        className="ml-4 text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full text-xs font-bold border border-red-200 transition flex items-center shrink-0"
+                        title="Hủy đơn hàng này"
+                      >
+                        <FaTimesCircle className="mr-1" /> Hủy Đơn
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Body Đơn hàng */}
+                <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-6">
+                    {order.products?.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="border-b border-gray-50 pb-6 last:border-0 last:pb-0"
+                      >
+                        <div className="flex gap-4">
+                          <div className="relative">
+                            <img
+                              src={item.img}
+                              alt={item.title}
+                              className="w-20 h-28 object-cover rounded-md border border-gray-200 shadow-sm"
+                            />
+                            <span className="absolute -top-2 -right-2 bg-gray-900 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md">
+                              {item.quantity}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-800 line-clamp-2 text-sm sm:text-base hover:text-purple-600 cursor-pointer transition">
+                              <Link to={`/product/${item.productId}`}>
+                                {item.title}
+                              </Link>
+                            </h4>
+                            <p className="text-sm text-purple-600 font-bold mt-1">
+                              {item.price?.toLocaleString("vi-VN")} ₫
+                            </p>
+
+                            {/* Nút Đánh giá (Chỉ ở tab Hoàn thành hoặc Tất cả nếu status=2) */}
+                            {order.status === 2 && (
+                              <div className="mt-3">
+                                {item.isReviewed ? (
+                                  <span className="inline-flex items-center whitespace-nowrap text-green-600 text-xs font-bold bg-green-50 px-3 py-1.5 rounded-md border border-green-100">
+                                    <FaCheckCircle className="mr-1.5" /> Đã đánh
+                                    giá
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() =>
+                                      setShowRatingFor(
+                                        showRatingFor === item.productId
+                                          ? null
+                                          : item.productId
+                                      )
+                                    }
+                                    className="text-xs flex items-center text-purple-600 border border-purple-600 px-3 py-1.5 rounded-md hover:bg-purple-50 transition font-bold"
+                                  >
+                                    <FaPen className="mr-1.5" /> Viết đánh giá
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Form Đánh giá */}
+                        {showRatingFor === item.productId &&
+                          !item.isReviewed && (
+                            <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100 animate-fadeIn">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                  <EditableStarRating
+                                    rating={
+                                      ratingData[item.productId]?.star || 0
+                                    }
+                                    setRating={(val) =>
+                                      handleRatingChange(
+                                        item.productId,
+                                        "star",
+                                        val
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <textarea
+                                  rows="3"
+                                  placeholder="Chia sẻ cảm nhận..."
+                                  className="w-full text-sm p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                                  onChange={(e) =>
+                                    handleRatingChange(
+                                      item.productId,
+                                      "comment",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={() =>
+                                      submitRating(item.productId, order._id)
+                                    }
+                                    className="bg-purple-600 text-white text-sm font-bold py-2 px-6 rounded-lg cursor-pointer hover:bg-purple-700 transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                  >
+                                    Gửi đánh giá
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Cột Phải: Thông tin bổ sung */}
+                  <div className="space-y-6 border-l border-gray-100 lg:pl-8 flex flex-col justify-between h-full">
+                    <div>
+                      <h3 className="font-bold text-gray-800 border-b pb-2 mb-3 flex items-center text-xs uppercase tracking-wider text-gray-500">
+                        <FaShippingFast className="mr-2" /> Thông tin nhận hàng
+                      </h3>
+                      <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-lg">
+                        <p className="font-bold text-gray-800">
+                          {order.name || user.currentUser.fullname}
+                        </p>
+                        <p>{order.phone || "SĐT: Chưa cập nhật"}</p>
+                        <p className="line-clamp-2">
+                          {order.address || order.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="flex justify-between items-center text-sm mb-2">
+                        <span className="text-gray-500">Trạng thái:</span>
+                        <span
+                          className={`font-bold ${
+                            order.status === 2
+                              ? "text-green-600"
+                              : order.status === 3
+                              ? "text-red-600"
+                              : "text-blue-600"
+                          }`}
+                        >
+                          {order.status === 0
+                            ? "Chờ xác nhận"
+                            : order.status === 1
+                            ? "Đang vận chuyển"
+                            : order.status === 2
+                            ? "Giao thành công"
+                            : "Đã hủy"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-500">Thanh toán:</span>
+                        <span className="font-bold text-gray-800">
                           {order.paymentMethod || "COD"}
                         </span>
                       </div>
-                      <div className="flex justify-between text-gray-600">
-                        <span>Tạm tính</span>
-                        <span>{order.total?.toLocaleString("vi-VN")} ₫</span>
-                      </div>
-                      <div className="flex justify-between text-gray-600">
-                        <span>Phí vận chuyển</span>
-                        <span>30.000 ₫</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-2 mt-2">
-                        <span>Tổng cộng</span>
-                        <span className="text-lg text-purple-600">
-                          {(order.total + 30000)?.toLocaleString("vi-VN")} ₫
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-12 text-center">
           <Link to="/">
