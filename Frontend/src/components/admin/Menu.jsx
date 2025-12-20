@@ -7,6 +7,7 @@ import {
   FaSignOutAlt,
   FaUsers,
   FaBolt,
+  FaComments,
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 
@@ -27,7 +28,7 @@ const Menu = () => {
         { path: "/admin/products", icon: <FaBook />, label: "Sản phẩm" },
         { path: "/admin/orders", icon: <FaClipboardList />, label: "Đơn hàng" },
         { path: "/admin/banners", icon: <FaElementor />, label: "Banner" },
-        { path: "/admin/reviews", icon: <FaElementor />, label: "Đánh giá" },
+        { path: "/admin/reviews", icon: <FaComments />, label: "Đánh giá" },
       ],
     },
   ];

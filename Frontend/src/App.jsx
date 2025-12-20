@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useSelector } from "react-redux";
+import ScrollToTop from "./components/ScrollToTop";
 
 //user
 import Navbar from "./components/Navbar";
@@ -41,6 +42,7 @@ function App() {
   const ClientLayout = () => {
     return (
       <div className="flex flex-col min-h-screen">
+        <ScrollToTop />
         <Navbar />
         <div className="flex-1">
           <Outlet />
@@ -58,6 +60,7 @@ function App() {
 
     return (
       <div className="flex min-h-screen bg-slate-50">
+        <ScrollToTop />
         <div className="w-64 flex-none border-r bg-white shadow-sm h-screen sticky top-0 overflow-y-auto z-50">
           <AdminMenu />
         </div>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FaFire } from "react-icons/fa";
+import { FaFire, FaStar } from "react-icons/fa"; // Import thêm FaStar nếu muốn hiện đánh giá
 
 const ProductCard = ({ product, isFlashSale = false }) => {
   // Tính phần trăm giảm giá
@@ -13,7 +13,7 @@ const ProductCard = ({ product, isFlashSale = false }) => {
 
   return (
     <div className="bg-white p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 cursor-pointer relative group h-full flex flex-col">
-      {/* Badge giảm giá */}
+      {/* Badge giảm giá (Chỉ hiện nếu có giảm giá) */}
       {discountPercent > 0 && (
         <div className="absolute top-0 right-0 bg-yellow-400 text-red-600 font-bold text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg z-10">
           -{discountPercent}%
@@ -31,7 +31,7 @@ const ProductCard = ({ product, isFlashSale = false }) => {
         </div>
 
         {/* Tên sách */}
-        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-2 min-h-[40px]">
+        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-2 min-h-[40px] group-hover:text-purple-600 transition-colors">
           {product.title}
         </h3>
 
@@ -48,25 +48,41 @@ const ProductCard = ({ product, isFlashSale = false }) => {
             )}
           </div>
 
-          {/* Thanh trạng thái bán (Dành cho Flash Sale hoặc Best Seller) */}
-          <div className="mt-3 relative">
-            <div className="w-full bg-red-100 rounded-full h-4 relative overflow-hidden">
-              <div
-                className="bg-red-500 h-full absolute top-0 left-0 z-0"
-                style={{
-                  width: `${Math.min(
-                    (product.sold / (product.sold + product.countInStock)) *
-                      100,
-                    100
-                  )}%`,
-                }}
-              ></div>
+          {/* --- LOGIC HIỂN THỊ TRẠNG THÁI BÁN (QUAN TRỌNG) --- */}
 
-              <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white z-10 uppercase tracking-wide">
-                <FaFire className="mr-1" /> Đã bán {product.sold || 0}
+          {isFlashSale ? (
+            // TRƯỜNG HỢP 1: FLASH SALE -> Hiện thanh Progress Bar đỏ rực
+            <div className="mt-3 relative">
+              <div className="w-full bg-red-100 rounded-full h-4 relative overflow-hidden">
+                <div
+                  className="bg-red-500 h-full absolute top-0 left-0 z-0"
+                  style={{
+                    width: `${Math.min(
+                      (product.sold / (product.sold + product.countInStock)) *
+                        100,
+                      100
+                    )}%`,
+                  }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white z-10 uppercase tracking-wide">
+                  <FaFire className="mr-1" /> Đã bán {product.sold || 0}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            // TRƯỜNG HỢP 2: BEST SELLER & THƯỜNG -> Chỉ hiện text đơn giản
+            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+              {/* Có thể thêm sao đánh giá nếu thích */}
+              <div className="flex items-center text-yellow-400">
+                <FaStar className="mr-1" />
+                <span>{product.rating ? product.rating.toFixed(1) : 0}</span>
+              </div>
+
+              {/* Số lượng đã bán (Style nhẹ nhàng) */}
+              <span>Đã bán {product.sold || 0}</span>
+            </div>
+          )}
+          {/* -------------------------------------------------- */}
         </div>
       </Link>
     </div>

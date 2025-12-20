@@ -14,6 +14,10 @@ const ProductList = () => {
   const [sort, setSort] = useState("newest");
   const [categoryName, setCategoryName] = useState("Tất cả sách");
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [catId]);
+
   // 1. Lấy danh sách thể loại (cho Sidebar bên trái)
   useEffect(() => {
     const getCategories = async () => {

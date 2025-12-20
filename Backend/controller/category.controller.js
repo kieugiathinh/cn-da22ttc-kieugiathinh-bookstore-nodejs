@@ -4,7 +4,7 @@ import asyncHandler from "express-async-handler";
 // 1. Tạo thể loại mới
 // POST /api/v1/categories
 const createCategory = asyncHandler(async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, img } = req.body;
 
   const categoryExists = await Category.findOne({ name });
   if (categoryExists) {
@@ -15,6 +15,7 @@ const createCategory = asyncHandler(async (req, res) => {
   const category = await Category.create({
     name,
     description,
+    img: img || "",
   });
 
   if (category) {
@@ -35,13 +36,14 @@ const getAllCategories = asyncHandler(async (req, res) => {
 // 3. Cập nhật thể loại
 // PUT /api/v1/categories/:id
 const updateCategory = asyncHandler(async (req, res) => {
-  const { name, description, status } = req.body;
+  const { name, description, status, img } = req.body;
   const category = await Category.findById(req.params.id);
 
   if (category) {
     category.name = name || category.name;
     category.description = description || category.description;
 
+    if (img !== undefined) category.img = img;
     if (status !== undefined) category.status = status;
 
     const updatedCategory = await category.save();
