@@ -8,9 +8,8 @@ import { CLOUDINARY_CONFIG } from "../../utils/constants";
 
 const Product = () => {
   const location = useLocation();
-  const navigate = useNavigate(); // Hook dùng để chuyển trang
+  const navigate = useNavigate();
   const { id } = useParams();
-  // const id = location.pathname.split("/")[3];
 
   const [product, setProduct] = useState({});
   const [inputs, setInputs] = useState({});
@@ -45,6 +44,7 @@ const Product = () => {
           originalPrice: productRes.data.originalPrice,
           discountedPrice: productRes.data.discountedPrice,
           countInStock: productRes.data.countInStock,
+          sold: productRes.data.sold || 0,
         });
 
         setLoading(false);
@@ -95,6 +95,7 @@ const Product = () => {
         countInStock: Number(inputs.countInStock),
         originalPrice: Number(inputs.originalPrice),
         discountedPrice: Number(inputs.discountedPrice),
+        sold: Number(inputs.sold),
       };
 
       await userRequest.put("/products/" + id, updatedProduct);
@@ -284,6 +285,22 @@ const Product = () => {
                 onChange={handleChange}
                 min="0"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              />
+            </div>
+
+            {/* Đã bán */}
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">
+                Đã bán
+              </label>
+              <input
+                type="number"
+                name="sold"
+                defaultValue={product.sold || 0}
+                onChange={handleChange}
+                min="0"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                title="Có thể chỉnh sửa số lượng đã bán để tăng độ uy tín"
               />
             </div>
 

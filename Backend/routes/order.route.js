@@ -5,6 +5,7 @@ import {
   deleteOrder,
   createOrder,
   updateOrder,
+  cancelOrder,
 } from "../controller/order.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
@@ -25,10 +26,7 @@ router.delete("/:id", protect, deleteOrder);
 // Get User's Order Route
 router.get("/find/:id", protect, getUserOrder);
 
-// router.post("/", createOrder);
-// router.put("/:id", updateOrder);
-// router.get("/", getAllOrders);
-// router.delete("/:id", deleteOrder);
-// router.get("/find/:id", getUserOrder);
+// Route Hủy đơn (Cần protect để biết ai đang hủy)
+router.put("/:id/cancel", protect, cancelOrder);
 
 export default router;

@@ -2,8 +2,7 @@ import { FaMinus, FaPlus, FaTrashAlt, FaArrowLeft } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart, removeProduct, updateQuantity } from "../redux/cartRedux";
 import { userRequest } from "../requestMethods";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "sonner"; // Dùng Sonner
 import { Link } from "react-router-dom";
 
 const Cart = () => {
@@ -13,7 +12,7 @@ const Cart = () => {
 
   // --- HANDLERS ---
   const handleRemoveProduct = (productId) => {
-    dispatch(removeProduct(productId)); // Truyền ID thay vì cả object product
+    dispatch(removeProduct(productId));
     toast.info("Đã xóa sản phẩm khỏi giỏ hàng");
   };
 
@@ -24,14 +23,27 @@ const Cart = () => {
     }
   };
 
-  const handleQuantityChange = (productId, currentQuantity, change) => {
+  // --- LOGIC TĂNG GIẢM SỐ LƯỢNG (QUAN TRỌNG) ---
+  const handleQuantityChange = (
+    productId,
+    currentQuantity,
+    change,
+    countInStock
+  ) => {
     const newQuantity = currentQuantity + change;
 
+    // 1. Chặn giảm xuống dưới 1
     if (newQuantity < 1) {
-      // Nếu giảm xuống 0 thì hỏi xóa
       if (window.confirm("Bạn muốn xóa sản phẩm này?")) {
         handleRemoveProduct(productId);
       }
+      return;
+    }
+
+    // 2. Chặn tăng vượt quá tồn kho
+    // Lưu ý: countInStock có thể undefined nếu là sp cũ trong localStorage, nên check kỹ
+    if (countInStock !== undefined && newQuantity > countInStock) {
+      toast.warning(`Kho chỉ còn ${countInStock} cuốn!`);
       return;
     }
 
@@ -43,37 +55,9 @@ const Cart = () => {
     );
   };
 
-  const handleCheckout = async () => {
-    if (!user.currentUser) {
-      toast.error("Vui lòng đăng nhập để thanh toán!");
-      return;
-    }
-
-    if (cart.products.length === 0) {
-      toast.warning("Giỏ hàng đang trống!");
-      return;
-    }
-
-    try {
-      const res = await userRequest.post("/stripe/create-checkout-session", {
-        cart,
-        userId: user.currentUser._id,
-        email: user.currentUser.email,
-        name: user.currentUser.fullname || user.currentUser.name, // Lấy fullname hoặc name
-      });
-
-      if (res.data.url) {
-        window.location.href = res.data.url;
-      }
-    } catch (error) {
-      console.log(error.message);
-      toast.error("Thanh toán thất bại. Vui lòng thử lại sau.");
-    }
-  };
-
   // --- CALCULATIONS ---
   const subtotal = cart.total || 0;
-  const shipping = subtotal > 0 ? 30000 : 0; // Phí ship cố định 30k hoặc tùy logic
+  const shipping = subtotal > 0 ? 30000 : 0;
   const total = subtotal + shipping;
 
   // --- EMPTY CART UI ---
@@ -102,7 +86,7 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
+      {/* Không cần ToastContainer ở đây nữa */}
 
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-extrabold text-gray-900 mb-8 flex items-center">
@@ -116,7 +100,7 @@ const Cart = () => {
           {/* --- LEFT COLUMN: PRODUCT LIST --- */}
           <div className="flex-1">
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              {/* Header Bảng (Ẩn trên mobile) */}
+              {/* Header Bảng */}
               <div className="hidden sm:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-gray-600 font-semibold text-sm">
                 <div className="col-span-6">Sản phẩm</div>
                 <div className="col-span-2 text-center">Đơn giá</div>
@@ -147,9 +131,16 @@ const Cart = () => {
                             {product.title}
                           </Link>
                         </h3>
+                        {/* Hiển thị cảnh báo tồn kho nếu gần hết */}
+                        {product.countInStock < 5 && (
+                          <p className="text-xs text-red-500 font-medium mb-1">
+                            Chỉ còn {product.countInStock} sản phẩm
+                          </p>
+                        )}
+
                         <button
                           onClick={() => handleRemoveProduct(product._id)}
-                          className="text-sm text-red-500 hover:text-red-700 flex items-center mt-2 transition"
+                          className="text-sm text-red-500 hover:text-red-700 flex items-center mt-1 transition"
                         >
                           <FaTrashAlt className="mr-1" /> Xóa
                         </button>
@@ -165,29 +156,44 @@ const Cart = () => {
                     <div className="col-span-2 flex justify-center items-center">
                       <div className="flex items-center border border-gray-300 rounded-lg">
                         <button
+                          // Truyền thêm product.countInStock
                           onClick={() =>
                             handleQuantityChange(
                               product._id,
                               product.quantity,
-                              -1
+                              -1,
+                              product.countInStock
                             )
                           }
                           className="px-3 py-1 hover:bg-gray-100 text-gray-600 transition rounded-l-lg"
                         >
                           <FaMinus size={10} />
                         </button>
+
                         <span className="px-3 py-1 font-semibold text-gray-700 border-l border-r border-gray-300 min-w-[40px] text-center">
                           {product.quantity}
                         </span>
+
                         <button
+                          // Truyền thêm product.countInStock
                           onClick={() =>
                             handleQuantityChange(
                               product._id,
                               product.quantity,
-                              1
+                              1,
+                              product.countInStock
                             )
                           }
-                          className="px-3 py-1 hover:bg-gray-100 text-gray-600 transition rounded-r-lg"
+                          // Disable nút cộng nếu đã đạt max
+                          disabled={
+                            product.countInStock !== undefined &&
+                            product.quantity >= product.countInStock
+                          }
+                          className={`px-3 py-1 transition rounded-r-lg ${
+                            product.quantity >= product.countInStock
+                              ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                              : "hover:bg-gray-100 text-gray-600"
+                          }`}
                         >
                           <FaPlus size={10} />
                         </button>
@@ -245,7 +251,6 @@ const Cart = () => {
                       : "Miễn phí"}
                   </span>
                 </div>
-                {/* Thêm mã giảm giá nếu có */}
               </div>
 
               <div className="flex justify-between items-center border-t border-gray-200 pt-4 mb-6">

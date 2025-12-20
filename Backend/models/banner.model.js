@@ -15,6 +15,11 @@ const BannerSchema = mongoose.Schema(
       type: String,
       require: true,
     },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

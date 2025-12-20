@@ -14,6 +14,22 @@ const createBanner = asyncHandler(async (req, res) => {
   }
 });
 
+// Update Banner
+const updateBanner = asyncHandler(async (req, res) => {
+  const banner = await Banner.findById(req.params.id);
+  if (banner) {
+    if (req.body.isActive !== undefined) {
+      banner.isActive = req.body.isActive;
+    }
+
+    const updatedBanner = await banner.save();
+    res.status(200).json(updatedBanner);
+  } else {
+    res.status(404);
+    throw new Error("Banner not found");
+  }
+});
+
 // Delete Banner
 const deleteBanner = asyncHandler(async (req, res) => {
   const banner = await Banner.findByIdAndDelete(req.params.id);
@@ -52,4 +68,10 @@ const getRandomBanner = asyncHandler(async (req, res) => {
   }
 });
 
-export { getAllBanners, createBanner, deleteBanner, getRandomBanner };
+export {
+  getAllBanners,
+  createBanner,
+  deleteBanner,
+  getRandomBanner,
+  updateBanner,
+};

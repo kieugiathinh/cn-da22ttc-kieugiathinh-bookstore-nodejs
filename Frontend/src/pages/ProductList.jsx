@@ -1,39 +1,65 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { userRequest } from "../requestMethods";
 import ProductCard from "../components/ProductCard";
-import { FaFilter, FaSortAmountDown } from "react-icons/fa";
+import { FaFilter, FaListUl, FaChevronRight } from "react-icons/fa";
 
 const ProductList = () => {
   const location = useLocation();
   const catId = location.pathname.split("/")[2];
 
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState("newest");
-  const [categoryName, setCategoryName] = useState("");
+  const [categoryName, setCategoryName] = useState("Tất cả sách");
 
-  // 1. Fetch Data
+  // 1. Lấy danh sách thể loại (cho Sidebar bên trái)
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const res = await userRequest.get("/categories");
+        setCategories(res.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    getCategories();
+  }, []);
+
+  // 2. Lấy danh sách sản phẩm (Logic quan trọng)
   useEffect(() => {
     const getProducts = async () => {
+      setLoading(true);
       try {
-        const res = await userRequest.get(`/products?category=${catId}`);
+        // Nếu có catId thì gọi API lọc, không thì gọi API lấy hết
+        const url = catId ? `/products?category=${catId}` : "/products";
+
+        const res = await userRequest.get(url);
         setProducts(res.data);
 
-        // Lấy tên thể loại từ sản phẩm đầu tiên (nếu có) để hiển thị tiêu đề
-        if (res.data.length > 0 && res.data[0].category) {
-          setCategoryName(res.data[0].category.name);
+        // Cập nhật tiêu đề trang tương ứng
+        if (catId) {
+          const currentCat = categories.find((c) => c._id === catId);
+          if (currentCat) {
+            setCategoryName(currentCat.name);
+          } else if (res.data.length > 0 && res.data[0].category) {
+            // Fallback: Lấy từ sản phẩm đầu tiên nếu có populate
+            setCategoryName(res.data[0].category.name);
+          }
+        } else {
+          setCategoryName("Tất cả sách");
         }
-        setLoading(false);
       } catch (err) {
         console.error(err);
+      } finally {
         setLoading(false);
       }
     };
     getProducts();
-  }, [catId]);
+  }, [catId, categories]); // Thêm categories vào dependency để cập nhật tên khi load xong
 
-  // 2. Logic Sắp xếp (Frontend Sort)
+  // 3. Logic Sắp xếp (Frontend Sort)
   useEffect(() => {
     if (sort === "newest") {
       setProducts((prev) =>
@@ -50,56 +76,115 @@ const ProductList = () => {
     }
   }, [sort]);
 
-  if (loading)
-    return <div className="p-10 text-center">Đang tải dữ liệu...</div>;
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Header: Tên thể loại & Bộ lọc */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800 uppercase">
-            {categoryName || "Danh sách sản phẩm"}
-            <span className="text-gray-500 text-base font-normal ml-2 lowercase">
-              ({products.length} kết quả)
-            </span>
-          </h1>
-
-          <div className="flex items-center space-x-3 mt-4 md:mt-0">
-            <div className="flex items-center text-gray-600">
-              <FaFilter className="mr-2" />{" "}
-              <span className="font-semibold">Sắp xếp:</span>
-            </div>
-            <select
-              onChange={(e) => setSort(e.target.value)}
-              className="border border-gray-300 rounded-lg p-2 outline-none focus:border-purple-500 text-sm"
-            >
-              <option value="newest">Mới nhất</option>
-              <option value="asc">Giá: Thấp đến Cao</option>
-              <option value="desc">Giá: Cao đến Thấp</option>
-            </select>
-          </div>
+        {/* Breadcrumb (Đường dẫn) */}
+        <div className="flex items-center text-sm text-gray-500 mb-6">
+          <Link to="/" className="hover:text-purple-600">
+            Trang chủ
+          </Link>
+          <FaChevronRight className="mx-2 text-xs" />
+          <span className="font-semibold text-gray-800">{categoryName}</span>
         </div>
 
-        {/* Danh sách sản phẩm */}
-        {products.length === 0 ? (
-          <div className="text-center py-20">
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png"
-              alt="Empty"
-              className="w-32 mx-auto mb-4 opacity-50"
-            />
-            <p className="text-gray-500 text-lg">
-              Chưa có sách nào trong thể loại này.
-            </p>
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* --- SIDEBAR (CỘT TRÁI - DANH MỤC) --- */}
+          <div className="lg:w-1/4">
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 sticky top-24">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center border-b pb-2">
+                <FaListUl className="mr-2 text-purple-600" /> Danh Mục
+              </h3>
+              <ul className="space-y-2">
+                {/* Link về trang Tất cả */}
+                <li>
+                  <Link
+                    to="/products"
+                    className={`block px-3 py-2 rounded-lg transition-colors ${
+                      !catId
+                        ? "bg-purple-50 text-purple-700 font-bold"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-purple-600"
+                    }`}
+                  >
+                    Tất cả sách
+                  </Link>
+                </li>
+                {/* Render các thể loại */}
+                {categories.map((cat) => (
+                  <li key={cat._id}>
+                    <Link
+                      to={`/products/${cat._id}`}
+                      className={`block px-3 py-2 rounded-lg transition-colors ${
+                        catId === cat._id
+                          ? "bg-purple-50 text-purple-700 font-bold"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-purple-600"
+                      }`}
+                    >
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {products.map((item) => (
-              <ProductCard key={item._id} product={item} />
-            ))}
+
+          {/* --- MAIN CONTENT (CỘT PHẢI - SẢN PHẨM) --- */}
+          <div className="lg:w-3/4">
+            {/* Toolbar: Tiêu đề & Sắp xếp */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <h1 className="text-xl font-bold text-gray-800 uppercase">
+                {categoryName}
+                <span className="ml-2 text-sm font-normal text-gray-500 lowercase">
+                  ({products.length} sản phẩm)
+                </span>
+              </h1>
+
+              <div className="flex items-center mt-3 sm:mt-0">
+                <span className="text-sm text-gray-500 mr-2 flex items-center">
+                  <FaFilter className="mr-1" /> Sắp xếp:
+                </span>
+                <select
+                  onChange={(e) => setSort(e.target.value)}
+                  className="border border-gray-300 rounded-md p-1.5 text-sm focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="asc">Giá: Thấp đến Cao</option>
+                  <option value="desc">Giá: Cao đến Thấp</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Lưới sản phẩm */}
+            {loading ? (
+              <div className="text-center py-20 text-gray-500">
+                Đang tải sách...
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-xl shadow-sm">
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png"
+                  alt="Empty"
+                  className="w-24 mx-auto mb-4 opacity-50"
+                />
+                <p className="text-gray-500 text-lg">
+                  Không tìm thấy sách nào.
+                </p>
+                <Link
+                  to="/products"
+                  className="text-purple-600 font-semibold mt-2 inline-block"
+                >
+                  Xem tất cả sách
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.map((item) => (
+                  <ProductCard key={item._id} product={item} />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

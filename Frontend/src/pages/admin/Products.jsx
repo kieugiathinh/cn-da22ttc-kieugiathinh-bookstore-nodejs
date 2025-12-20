@@ -122,11 +122,11 @@ const Products = () => {
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Tồn kho
               </th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Sửa
+              <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                Đã bán
               </th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Xóa
+              <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                Thao tác
               </th>
             </tr>
           </thead>
@@ -193,23 +193,27 @@ const Products = () => {
                   </span>
                 </td>
 
-                {/* CỘT SỬA */}
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <Link to={`/admin/product/${product._id}`}>
-                    <FaEdit
-                      className="text-blue-500 cursor-pointer text-lg hover:text-blue-700 mx-auto"
-                      title="Chỉnh sửa"
-                    />
-                  </Link>
+                {/* Đã bán */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-600">
+                    {product.sold || 0}
+                  </span>
                 </td>
 
-                {/* CỘT XÓA */}
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <FaTrash
-                    className="text-red-500 cursor-pointer text-lg hover:text-red-700 mx-auto"
-                    title="Xóa"
-                    onClick={() => handleDelete(product._id)}
-                  />
+                  <div className="flex justify-center space-x-4">
+                    <Link to={`/admin/product/${product._id}`}>
+                      <FaEdit
+                        className="text-blue-500 cursor-pointer text-lg hover:text-blue-700 mx-auto"
+                        title="Chỉnh sửa"
+                      />
+                    </Link>
+                    <FaTrash
+                      className="text-red-500 cursor-pointer text-lg hover:text-red-700 mx-auto"
+                      title="Xóa"
+                      onClick={() => handleDelete(product._id)}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

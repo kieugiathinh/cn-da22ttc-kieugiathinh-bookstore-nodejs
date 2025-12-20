@@ -4,11 +4,14 @@ import {
   createBanner,
   deleteBanner,
   getRandomBanner,
+  updateBanner,
 } from "../controller/banner.controller.js";
 const router = express.Router();
 
 //Create Banner
 router.post("/", createBanner);
+//Update Banner
+router.put("/:id", updateBanner);
 // Get All Banners
 router.get("/", getAllBanners);
 // Delete Banner

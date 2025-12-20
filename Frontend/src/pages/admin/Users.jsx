@@ -110,7 +110,7 @@ const Users = () => {
         Swal.fire("Thành công", "Đã cập nhật thông tin người dùng!", "success");
       } else {
         // --- LOGIC THÊM (CREATE) ---
-        await userRequest.post("/auth/register", formData);
+        await userRequest.post("/users", formData);
         Swal.fire("Thành công", "Đã tạo người dùng mới!", "success");
       }
 

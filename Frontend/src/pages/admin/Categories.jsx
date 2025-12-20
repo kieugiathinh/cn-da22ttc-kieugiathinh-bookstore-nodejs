@@ -189,9 +189,6 @@ const Categories = () => {
               <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Mô tả
               </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
-                Ngày tạo
-              </th>
               <th className="px-6 py-3 text-center text-xs font-bold text-purple-700 uppercase tracking-wider">
                 Thao tác
               </th>
@@ -208,9 +205,6 @@ const Categories = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 truncate max-w-xs">
                   {cat.description || "—"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {new Date(cat.createdAt).toLocaleDateString("vi-VN")}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <div className="flex justify-center space-x-4">
