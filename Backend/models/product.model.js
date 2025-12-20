@@ -70,15 +70,16 @@ const ProductSchema = mongoose.Schema(
       default: 0,
     },
 
-    //Đánh giá
-    ratings: [
-      {
-        star: { type: Number },
-        name: { type: String },
-        comment: { type: String },
-        postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      },
-    ],
+    rating: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    numReviews: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
   {
     timestamps: true,

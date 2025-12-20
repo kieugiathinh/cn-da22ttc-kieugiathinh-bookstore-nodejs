@@ -4,7 +4,7 @@ import {
   FaShippingFast,
   FaBoxOpen,
   FaPen,
-  FaTimesCircle, // Import thêm icon Hủy
+  FaTimesCircle,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { userRequest } from "../requestMethods";
@@ -21,17 +21,14 @@ const Order = () => {
   const [ratingData, setRatingData] = useState({});
   const [showRatingFor, setShowRatingFor] = useState(null);
 
-  // 1. Fetch Orders
   useEffect(() => {
     const getUserOrder = async () => {
       try {
         const res = await userRequest.get(
           `/orders/find/${user.currentUser._id}`
         );
-        // Sắp xếp mới nhất lên đầu
-        setOrders(
-          res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        );
+        // Backend đã xử lý trả về field 'isReviewed' nên Frontend chỉ cần hứng data
+        setOrders(res.data);
         setLoading(false);
       } catch (error) {
         console.log(error);
@@ -44,7 +41,6 @@ const Order = () => {
     }
   }, [user]);
 
-  // 2. Handle Rating
   const handleRatingChange = (productId, field, value) => {
     setRatingData((prev) => ({
       ...prev,
@@ -55,7 +51,7 @@ const Order = () => {
     }));
   };
 
-  const submitRating = async (productId) => {
+  const submitRating = async (productId, orderId) => {
     const data = ratingData[productId];
     if (!data || !data.star) {
       toast.warning("Vui lòng chọn số sao đánh giá!");
@@ -63,22 +59,36 @@ const Order = () => {
     }
 
     try {
-      const singleRating = {
-        star: data.star,
-        name: user.currentUser.fullname || user.currentUser.name,
-        postedBy: user.currentUser._id,
+      await userRequest.post(`/reviews/${productId}`, {
+        rating: data.star,
         comment: data.comment || "",
-      };
+        orderId: orderId,
+      });
 
-      await userRequest.put(`/products/ratings/${productId}`, singleRating);
       toast.success("Cảm ơn bạn đã đánh giá sản phẩm!");
       setShowRatingFor(null);
+
+      // --- CẬP NHẬT UI NGAY LẬP TỨC (OPTIMISTIC UPDATE) ---
+      // Tìm đúng đơn hàng và sản phẩm đó để set isReviewed = true
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => {
+          if (order._id === orderId) {
+            return {
+              ...order,
+              products: order.products.map((p) =>
+                p.productId === productId ? { ...p, isReviewed: true } : p
+              ),
+            };
+          }
+          return order;
+        })
+      );
+      // ----------------------------------------------------
     } catch (error) {
-      toast.error("Lỗi khi gửi đánh giá.");
+      toast.error(error.response?.data?.message || "Lỗi khi gửi đánh giá.");
     }
   };
 
-  // 3. HÀM HỦY ĐƠN (Bạn đã có, mình giữ nguyên logic)
   const handleCancelOrder = async (orderId) => {
     const result = await Swal.fire({
       title: "Hủy đơn hàng?",
@@ -95,8 +105,6 @@ const Order = () => {
       try {
         await userRequest.put(`/orders/${orderId}/cancel`);
         toast.success("Đã hủy đơn hàng thành công");
-
-        // Cập nhật UI ngay lập tức (Optomistic Update) thay vì reload trang
         setOrders((prev) =>
           prev.map((order) =>
             order._id === orderId ? { ...order, status: 3 } : order
@@ -146,7 +154,7 @@ const Order = () => {
         </div>
 
         <div className="space-y-8">
-          {orders.map((order, index) => (
+          {orders.map((order) => (
             <div
               key={order._id}
               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
@@ -178,17 +186,16 @@ const Order = () => {
                   </p>
                 </div>
 
-                {/* --- KHU VỰC TRẠNG THÁI & NÚT HỦY --- */}
                 <div className="flex items-center gap-3">
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
                       order.status === 2
-                        ? "bg-green-100 text-green-700" // Giao thành công
+                        ? "bg-green-100 text-green-700"
                         : order.status === 3
-                        ? "bg-red-100 text-red-700" // Đã hủy
+                        ? "bg-red-100 text-red-700"
                         : order.status === 1
-                        ? "bg-blue-100 text-blue-700" // Đã thanh toán
-                        : "bg-yellow-100 text-yellow-700" // Chờ xác nhận (0)
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-yellow-100 text-yellow-700"
                     }`}
                   >
                     {order.status === 0
@@ -199,8 +206,6 @@ const Order = () => {
                       ? "Giao thành công"
                       : "Đã hủy"}
                   </span>
-
-                  {/* NÚT HỦY: Chỉ hiện khi status là 0 (Chờ xác nhận) */}
                   {order.status === 0 && (
                     <button
                       onClick={() => handleCancelOrder(order._id)}
@@ -211,12 +216,10 @@ const Order = () => {
                     </button>
                   )}
                 </div>
-                {/* ----------------------------------- */}
               </div>
 
               {/* Body Đơn hàng */}
               <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Cột Trái: Sản phẩm */}
                 <div className="lg:col-span-2 space-y-6">
                   <h3 className="font-bold text-gray-800 border-b pb-2 mb-4 flex items-center">
                     <FaBoxOpen className="mr-2 text-purple-500" /> Sản phẩm (
@@ -248,31 +251,40 @@ const Order = () => {
                             {item.price?.toLocaleString("vi-VN")} ₫
                           </p>
 
-                          {/* Nút đánh giá (Chỉ hiện khi giao thành công - Status 2) */}
+                          {/* --- LOGIC HIỂN THỊ NÚT ĐÁNH GIÁ --- */}
                           {order.status === 2 && (
-                            <button
-                              onClick={() =>
-                                setShowRatingFor(
-                                  showRatingFor === item.productId
-                                    ? null
-                                    : item.productId
-                                )
-                              }
-                              className="mt-3 text-xs flex items-center text-gray-500 hover:text-purple-600 transition font-medium"
-                            >
-                              <FaPen className="mr-1.5" />
-                              {showRatingFor === item.productId
-                                ? "Đóng đánh giá"
-                                : "Viết đánh giá"}
-                            </button>
+                            <div className="mt-3">
+                              {item.isReviewed ? (
+                                // TRƯỜNG HỢP 1: ĐÃ ĐÁNH GIÁ
+                                <span className="text-green-600 text-xs font-bold flex items-center bg-green-50 px-3 py-1.5 rounded-md inline-block border border-green-100">
+                                  <FaCheckCircle className="mr-1.5" /> Đã đánh
+                                  giá
+                                </span>
+                              ) : (
+                                // TRƯỜNG HỢP 2: CHƯA ĐÁNH GIÁ
+                                <button
+                                  onClick={() =>
+                                    setShowRatingFor(
+                                      showRatingFor === item.productId
+                                        ? null
+                                        : item.productId
+                                    )
+                                  }
+                                  className="text-xs flex items-center text-purple-600 border border-purple-600 px-3 py-1.5 rounded-md hover:bg-purple-50 transition font-bold"
+                                >
+                                  <FaPen className="mr-1.5" />
+                                  Viết đánh giá
+                                </button>
+                              )}
+                            </div>
                           )}
+                          {/* ----------------------------------- */}
                         </div>
                       </div>
 
                       {/* Form Đánh giá */}
-                      {showRatingFor === item.productId && (
+                      {showRatingFor === item.productId && !item.isReviewed && (
                         <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100 animate-fadeIn">
-                          {/* ... (Code form đánh giá giữ nguyên) ... */}
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2">
                               <Rating
@@ -305,10 +317,12 @@ const Order = () => {
                             />
                             <div className="flex justify-end">
                               <button
-                                onClick={() => submitRating(item.productId)}
-                                className="bg-purple-600 text-white text-sm font-bold py-2 px-6 rounded-lg"
+                                onClick={() =>
+                                  submitRating(item.productId, order._id)
+                                }
+                                className="bg-purple-600 text-white text-sm font-bold py-2 px-6 rounded-lg cursor-pointer hover:bg-purple-700 transition"
                               >
-                                Gửi
+                                Gửi đánh giá
                               </button>
                             </div>
                           </div>
@@ -318,7 +332,7 @@ const Order = () => {
                   ))}
                 </div>
 
-                {/* Cột Phải: Thông tin giao hàng */}
+                {/* Cột Phải: Thông tin giao hàng (Giữ nguyên) */}
                 <div className="space-y-6 border-l border-gray-100 lg:pl-8">
                   <div>
                     <h3 className="font-bold text-gray-800 border-b pb-2 mb-3 flex items-center">
@@ -333,7 +347,6 @@ const Order = () => {
                       <p>{order.address || order.email}</p>
                     </div>
                   </div>
-
                   <div className="bg-gray-50 p-4 rounded-xl">
                     <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase">
                       Thanh toán
@@ -347,9 +360,7 @@ const Order = () => {
                       </div>
                       <div className="flex justify-between text-gray-600">
                         <span>Tạm tính</span>
-                        <span>
-                          {(order.total - 30000)?.toLocaleString("vi-VN")} ₫
-                        </span>
+                        <span>{order.total?.toLocaleString("vi-VN")} ₫</span>
                       </div>
                       <div className="flex justify-between text-gray-600">
                         <span>Phí vận chuyển</span>
@@ -358,7 +369,7 @@ const Order = () => {
                       <div className="flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-2 mt-2">
                         <span>Tổng cộng</span>
                         <span className="text-lg text-purple-600">
-                          {order.total?.toLocaleString("vi-VN")} ₫
+                          {(order.total + 30000)?.toLocaleString("vi-VN")} ₫
                         </span>
                       </div>
                     </div>

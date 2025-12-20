@@ -50,6 +50,7 @@ import orderRoute from "./routes/order.route.js";
 import stripeRoute from "./routes/stripe.js";
 import categoryRoutes from "./routes/category.routes.js";
 import flashSaleRoutes from "./routes/flashsale.route.js";
+import reviewRoute from "./routes/review.route.js";
 
 const app = express();
 
@@ -84,6 +85,7 @@ app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/orders", orderRoute);
 app.use("/api/v1/stripe", stripeRoute);
 app.use("/api/v1/flash-sales", flashSaleRoutes);
+app.use("/api/v1/reviews", reviewRoute);
 
 //Error middleware
 app.use(notFound);

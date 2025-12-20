@@ -103,35 +103,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
   }
 });
 
-// 6. Rating Product
-const ratingProduct = asyncHandler(async (req, res) => {
-  const { star, name, comment, postedBy } = req.body;
-
-  if (!star || star < 1 || star > 5) {
-    res.status(400);
-    throw new Error("Vui lòng đánh giá từ 1 đến 5 sao");
-  }
-
-  const updatedProduct = await Product.findByIdAndUpdate(
-    req.params.id,
-    {
-      $push: {
-        ratings: { star, name, comment, postedBy },
-      },
-    },
-    { new: true }
-  );
-
-  if (!updatedProduct) {
-    res.status(404);
-    throw new Error("Không tìm thấy sản phẩm");
-  }
-
-  res.status(200).json({ message: "Đánh giá thành công" });
-});
-
 export {
-  ratingProduct,
   getAllProducts,
   getProduct,
   createProduct,
