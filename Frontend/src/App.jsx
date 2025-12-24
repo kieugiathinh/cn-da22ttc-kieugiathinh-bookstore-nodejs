@@ -21,6 +21,7 @@ import Success from "./pages/Success";
 import Checkout from "./pages/Checkout";
 import ProductList from "./pages/ProductList";
 import FlashSale from "./pages/FlashSale";
+import MyVouchers from "./pages/MyVouchers";
 
 //admin
 import AdminMenu from "./components/admin/Menu";
@@ -99,6 +100,10 @@ function App() {
         { path: "/checkout", element: <Checkout /> },
         { path: "/success", element: <Success /> },
         { path: "/flash-sale", element: <FlashSale /> },
+        {
+          path: "/my-vouchers",
+          element: currentUser ? <MyVouchers /> : <Login />,
+        },
       ],
     },
 

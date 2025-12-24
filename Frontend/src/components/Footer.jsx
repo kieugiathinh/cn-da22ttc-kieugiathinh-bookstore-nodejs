@@ -41,7 +41,7 @@ const Footer = () => {
           {/* CỘT 2: LIÊN KẾT NHANH */}
           <div>
             <h3 className="text-white text-lg font-bold mb-4 border-b-2 border-purple-500 inline-block pb-1">
-              Khám Phá
+              KHÁM PHÁ
             </h3>
             <ul className="space-y-3 text-sm">
               <FooterLink to="/" text="Trang chủ" />
@@ -55,7 +55,7 @@ const Footer = () => {
           {/* CỘT 3: CHÍNH SÁCH & HỖ TRỢ (Thêm cho chuyên nghiệp) */}
           <div>
             <h3 className="text-white text-lg font-bold mb-4 border-b-2 border-purple-500 inline-block pb-1">
-              Hỗ Trợ Khách Hàng
+              HỖ TRỢ KHÁCH HÀNG
             </h3>
             <ul className="space-y-3 text-sm">
               <FooterLink to="/faq" text="Câu hỏi thường gặp" />
@@ -69,12 +69,12 @@ const Footer = () => {
           {/* CỘT 4: LIÊN HỆ & NEWSLETTER */}
           <div>
             <h3 className="text-white text-lg font-bold mb-4 border-b-2 border-purple-500 inline-block pb-1">
-              Liên Hệ
+              LIÊN HỆ
             </h3>
             <ul className="space-y-4 text-sm mb-6">
               <li className="flex items-start space-x-3">
                 <FaMapMarkerAlt className="text-purple-500 mt-1 flex-shrink-0" />
-                <span>Long Hoa, Châu Thành, Trà Vinh</span>
+                <span>Long Hòa, Châu Thành, Vĩnh Long</span>
               </li>
               <li className="flex items-center space-x-3">
                 <FaPhoneAlt className="text-purple-500 flex-shrink-0" />

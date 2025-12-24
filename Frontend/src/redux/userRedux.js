@@ -27,9 +27,15 @@ const userSlice = createSlice({
       state.error = false;
       state.currentUser = null;
     },
+
+    updateWallet: (state, action) => {
+      if (state.currentUser) {
+        state.currentUser.wallet = action.payload;
+      }
+    },
   },
 });
 
-export const { loginFailure, loginStart, loginSuccess, logOut } =
+export const { loginFailure, loginStart, loginSuccess, logOut, updateWallet } =
   userSlice.actions;
 export default userSlice.reducer;

@@ -1,29 +1,67 @@
+import { useState, useEffect } from "react";
 import { FaMinus, FaPlus, FaTrashAlt, FaArrowLeft } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart, removeProduct, updateQuantity } from "../redux/cartRedux";
 import { userRequest } from "../requestMethods";
-import { toast } from "sonner"; // Dùng Sonner
-import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom";
 
 const Cart = () => {
   const cart = useSelector((state) => state.cart);
   const user = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  // --- HANDLERS ---
+  // --- STATE QUẢN LÝ SẢN PHẨM ĐƯỢC CHỌN ---
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // Tự động chọn tất cả khi mới vào giỏ hàng (UX phổ biến)
+  // Bạn có thể bỏ useEffect này nếu muốn mặc định là không chọn gì
+  useEffect(() => {
+    if (cart.products && cart.products.length > 0) {
+      // Mặc định chọn hết
+      setSelectedIds(cart.products.map((p) => p._id));
+    }
+  }, [cart.products.length]); // Chỉ chạy lại khi số lượng sp thay đổi
+
+  // --- LOGIC CHỌN SẢN PHẨM ---
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // Chọn tất cả
+      const allIds = cart.products.map((p) => p._id);
+      setSelectedIds(allIds);
+    } else {
+      // Bỏ chọn tất cả
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectProduct = (id) => {
+    if (selectedIds.includes(id)) {
+      // Nếu đã có -> Bỏ chọn
+      setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
+    } else {
+      // Nếu chưa có -> Thêm vào
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  // --- HANDLERS CŨ ---
   const handleRemoveProduct = (productId) => {
     dispatch(removeProduct(productId));
+    // Xóa khỏi danh sách đã chọn nếu đang chọn
+    setSelectedIds((prev) => prev.filter((id) => id !== productId));
     toast.info("Đã xóa sản phẩm khỏi giỏ hàng");
   };
 
   const handleClearCart = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?")) {
       dispatch(clearCart());
+      setSelectedIds([]);
       toast.info("Đã dọn sạch giỏ hàng");
     }
   };
 
-  // --- LOGIC TĂNG GIẢM SỐ LƯỢNG (QUAN TRỌNG) ---
   const handleQuantityChange = (
     productId,
     currentQuantity,
@@ -32,7 +70,6 @@ const Cart = () => {
   ) => {
     const newQuantity = currentQuantity + change;
 
-    // 1. Chặn giảm xuống dưới 1
     if (newQuantity < 1) {
       if (window.confirm("Bạn muốn xóa sản phẩm này?")) {
         handleRemoveProduct(productId);
@@ -40,25 +77,48 @@ const Cart = () => {
       return;
     }
 
-    // 2. Chặn tăng vượt quá tồn kho
-    // Lưu ý: countInStock có thể undefined nếu là sp cũ trong localStorage, nên check kỹ
     if (countInStock !== undefined && newQuantity > countInStock) {
       toast.warning(`Kho chỉ còn ${countInStock} cuốn!`);
       return;
     }
 
-    dispatch(
-      updateQuantity({
-        _id: productId,
-        quantity: newQuantity,
-      })
-    );
+    dispatch(updateQuantity({ _id: productId, quantity: newQuantity }));
   };
 
-  // --- CALCULATIONS ---
-  const subtotal = cart.total || 0;
+  // --- LOGIC TÍNH TIỀN (CHỈ TÍNH SP ĐƯỢC CHỌN) ---
+  const selectedProducts = cart.products.filter((p) =>
+    selectedIds.includes(p._id)
+  );
+
+  const subtotal = selectedProducts.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
+
   const shipping = subtotal > 0 ? 30000 : 0;
   const total = subtotal + shipping;
+
+  // --- LOGIC CHUYỂN TRANG THANH TOÁN ---
+  const handleCheckout = () => {
+    if (!user.currentUser) {
+      toast.error("Vui lòng đăng nhập để thanh toán!");
+      return;
+    }
+
+    if (selectedIds.length === 0) {
+      toast.warning("Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!");
+      return;
+    }
+
+    // Chuyển hướng sang Checkout và gửi kèm danh sách hàng ĐÃ CHỌN
+    // (Ở trang Checkout bạn cần sửa lại để nhận state này thay vì lấy toàn bộ cart)
+    navigate("/checkout", {
+      state: {
+        checkoutItems: selectedProducts,
+        checkoutTotal: total, // Gửi luôn tổng tiền đã tính
+      },
+    });
+  };
 
   // --- EMPTY CART UI ---
   if (cart.products.length === 0) {
@@ -72,9 +132,6 @@ const Cart = () => {
         <h2 className="text-2xl font-bold text-gray-700 mb-2">
           Giỏ hàng của bạn đang trống
         </h2>
-        <p className="text-gray-500 mb-6">
-          Hãy thêm vài cuốn sách hay ho vào nhé!
-        </p>
         <Link to="/">
           <button className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700 transition shadow-lg flex items-center">
             <FaArrowLeft className="mr-2" /> Tiếp tục mua sắm
@@ -86,11 +143,9 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-      {/* Không cần ToastContainer ở đây nữa */}
-
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-extrabold text-gray-900 mb-8 flex items-center">
-          Giỏ Hàng{" "}
+          Giỏ Hàng
           <span className="text-lg font-normal text-gray-500 ml-2">
             ({cart.quantity} sản phẩm)
           </span>
@@ -101,8 +156,20 @@ const Cart = () => {
           <div className="flex-1">
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               {/* Header Bảng */}
-              <div className="hidden sm:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-gray-600 font-semibold text-sm">
-                <div className="col-span-6">Sản phẩm</div>
+              <div className="hidden sm:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-gray-600 font-semibold text-sm items-center">
+                {/* Checkbox Select All */}
+                <div className="col-span-1 flex justify-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedIds.length === cart.products.length &&
+                      cart.products.length > 0
+                    }
+                    onChange={handleSelectAll}
+                    className="w-5 h-5 accent-purple-600 cursor-pointer"
+                  />
+                </div>
+                <div className="col-span-5">Sản phẩm</div>
                 <div className="col-span-2 text-center">Đơn giá</div>
                 <div className="col-span-2 text-center">Số lượng</div>
                 <div className="col-span-2 text-right">Thành tiền</div>
@@ -113,10 +180,24 @@ const Cart = () => {
                 {cart.products?.map((product) => (
                   <div
                     key={product._id}
-                    className="p-4 sm:grid sm:grid-cols-12 gap-4 items-center hover:bg-gray-50 transition"
+                    className={`p-4 sm:grid sm:grid-cols-12 gap-4 items-center transition ${
+                      selectedIds.includes(product._id)
+                        ? "bg-purple-50/30"
+                        : "hover:bg-gray-50"
+                    }`}
                   >
+                    {/* Checkbox Individual */}
+                    <div className="col-span-1 flex justify-center mb-4 sm:mb-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(product._id)}
+                        onChange={() => handleSelectProduct(product._id)}
+                        className="w-5 h-5 accent-purple-600 cursor-pointer"
+                      />
+                    </div>
+
                     {/* Cột 1: Ảnh & Tên */}
-                    <div className="col-span-6 flex items-center space-x-4 mb-4 sm:mb-0">
+                    <div className="col-span-5 flex items-center space-x-4 mb-4 sm:mb-0">
                       <img
                         src={product.img}
                         alt={product.title}
@@ -131,7 +212,6 @@ const Cart = () => {
                             {product.title}
                           </Link>
                         </h3>
-                        {/* Hiển thị cảnh báo tồn kho nếu gần hết */}
                         {product.countInStock < 5 && (
                           <p className="text-xs text-red-500 font-medium mb-1">
                             Chỉ còn {product.countInStock} sản phẩm
@@ -154,9 +234,8 @@ const Cart = () => {
 
                     {/* Cột 3: Số lượng */}
                     <div className="col-span-2 flex justify-center items-center">
-                      <div className="flex items-center border border-gray-300 rounded-lg">
+                      <div className="flex items-center border border-gray-300 rounded-lg bg-white">
                         <button
-                          // Truyền thêm product.countInStock
                           onClick={() =>
                             handleQuantityChange(
                               product._id,
@@ -175,7 +254,6 @@ const Cart = () => {
                         </span>
 
                         <button
-                          // Truyền thêm product.countInStock
                           onClick={() =>
                             handleQuantityChange(
                               product._id,
@@ -184,7 +262,6 @@ const Cart = () => {
                               product.countInStock
                             )
                           }
-                          // Disable nút cộng nếu đã đạt max
                           disabled={
                             product.countInStock !== undefined &&
                             product.quantity >= product.countInStock
@@ -212,7 +289,6 @@ const Cart = () => {
               </div>
             </div>
 
-            {/* Nút xóa tất cả */}
             <div className="mt-6 flex justify-between items-center">
               <Link
                 to="/"
@@ -233,10 +309,16 @@ const Cart = () => {
           <div className="w-full lg:w-96">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-24">
               <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-4">
-                Tóm tắt đơn hàng
+                Thanh toán
               </h2>
 
               <div className="space-y-4 mb-6">
+                <div className="flex justify-between text-gray-600">
+                  <span>Đã chọn</span>
+                  <span className="font-medium text-purple-600">
+                    {selectedIds.length} sản phẩm
+                  </span>
+                </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính</span>
                   <span className="font-medium">
@@ -262,24 +344,18 @@ const Cart = () => {
                 </span>
               </div>
 
-              {user.currentUser && cart.products.length > 0 ? (
-                <Link to="/checkout">
-                  <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3.5 rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition transform hover:-translate-y-0.5 active:scale-95">
-                    TIẾN HÀNH THANH TOÁN
-                  </button>
-                </Link>
-              ) : (
-                <button
-                  onClick={() =>
-                    !user.currentUser
-                      ? toast.error("Vui lòng đăng nhập!")
-                      : toast.warning("Giỏ hàng trống!")
-                  }
-                  className="w-full bg-gray-300 text-gray-500 font-bold py-3.5 rounded-lg cursor-not-allowed"
-                >
-                  THANH TOÁN NGAY
-                </button>
-              )}
+              {/* NÚT THANH TOÁN */}
+              <button
+                onClick={handleCheckout}
+                disabled={selectedIds.length === 0}
+                className={`w-full font-bold py-3.5 rounded-lg shadow-lg transition transform active:scale-95 ${
+                  selectedIds.length > 0
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 hover:-translate-y-0.5"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                MUA HÀNG ({selectedIds.length})
+              </button>
 
               <p className="text-xs text-gray-400 text-center mt-4">
                 Chấp nhận thanh toán qua thẻ Visa, Master, MoMo...

@@ -54,6 +54,23 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "",
     },
+
+    wallet: [
+      {
+        coupon: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Coupon",
+        },
+        isUsed: {
+          type: Boolean,
+          default: false,
+        },
+        savedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

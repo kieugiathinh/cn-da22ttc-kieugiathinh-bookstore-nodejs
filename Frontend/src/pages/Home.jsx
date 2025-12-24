@@ -4,6 +4,7 @@ import FlashSale from "../components/FlashSale";
 import BestSeller from "../components/BestSeller";
 import TopRated from "../components/TopRated";
 import RandomProducts from "../components/RandomProducts";
+import CouponList from "../components/CouponList";
 
 const Home = () => {
   return (
@@ -12,6 +13,8 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 space-y-6 pt-6">
         {/* 1. Banner Slider */}
         <Banner />
+
+        <CouponList />
 
         {/* 2. Flash Sale */}
         <FlashSale />

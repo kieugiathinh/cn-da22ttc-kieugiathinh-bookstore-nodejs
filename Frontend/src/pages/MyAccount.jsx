@@ -233,7 +233,7 @@ const MyAccount = () => {
           {/* PHẦN 1: READ ONLY */}
           <section>
             <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center">
-              Thông Tin Tài Khoản
+              Thông tin tài khoản
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <DisabledInput
@@ -252,11 +252,11 @@ const MyAccount = () => {
           {/* PHẦN 2: EDITABLE FORM */}
           <section className="border-t border-gray-100 pt-8">
             <h2 className="text-lg font-bold text-gray-800 mb-5">
-              Thông Tin Cá Nhân
+              Thông tin cá nhân
             </h2>
             <form onSubmit={handleUpdateProfile} className="space-y-5">
               <EditableInput
-                label="Họ và Tên"
+                label="Họ và tên"
                 name="fullname"
                 value={formData.fullname}
                 onChange={handleChange}
@@ -297,7 +297,7 @@ const MyAccount = () => {
                     </>
                   ) : (
                     <>
-                      <FaSave className="mr-2" /> Lưu Thay Đổi
+                      <FaSave className="mr-2" /> Cập nhật
                     </>
                   )}
                 </button>
@@ -307,7 +307,7 @@ const MyAccount = () => {
 
           {/* PHẦN 3: SECURITY */}
           <section className="border-t border-gray-100 pt-8">
-            <h2 className="text-lg font-bold text-gray-800 mb-5">Bảo Mật</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-5">Bảo mật</h2>
             <form onSubmit={handleChangePassword} className="space-y-5">
               <div className="grid grid-cols-1 gap-5 ">
                 <EditableInput
@@ -346,7 +346,7 @@ const MyAccount = () => {
                   type="submit"
                   className="bg-white border border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-2.5 rounded-lg font-semibold transition-all flex items-center cursor-pointer"
                 >
-                  <FaLock className="mr-2" /> Đổi Mật Khẩu
+                  <FaLock className="mr-2" /> Đổi mật khẩu
                 </button>
               </div>
             </form>

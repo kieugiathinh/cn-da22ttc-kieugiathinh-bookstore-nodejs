@@ -363,7 +363,7 @@ const Product = () => {
           <div className="lg:col-span-3">
             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10 mb-8">
               <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6">
-                Mô Tả Sản Phẩm
+                Mô tả sản phẩm
               </h2>
               <div className="text-gray-700 leading-loose whitespace-pre-line">
                 {product.desc || "Chưa có mô tả chi tiết."}
@@ -372,7 +372,7 @@ const Product = () => {
 
             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10">
               <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6 flex justify-between items-center">
-                <span>Đánh Giá Khách Hàng</span>
+                <span>Đánh giá của khách hàng</span>
                 <span className="text-sm font-normal bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
                   {reviews.length} đánh giá
                 </span>

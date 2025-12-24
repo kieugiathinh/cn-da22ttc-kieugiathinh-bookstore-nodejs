@@ -1,24 +1,24 @@
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
-import Review from "../models/review.model.js"; // <--- BẮT BUỘC IMPORT REVIEW
+import Review from "../models/review.model.js";
+import Coupon from "../models/coupon.model.js";
+import User from "../models/user.model.js";
 import asyncHandler from "express-async-handler";
 
 // Create Order
 const createOrder = asyncHandler(async (req, res) => {
-  const { products } = req.body;
+  const { products, couponCode } = req.body;
 
   // 1. KIỂM TRA TỒN KHO
   for (const item of products) {
     const product = await Product.findById(item.productId);
     if (!product) {
       res.status(404);
-      throw new Error(`Sản phẩm với ID ${item.productId} không tồn tại`);
+      throw new Error(`Sản phẩm ${item.title} không tồn tại`);
     }
     if (product.countInStock < item.quantity) {
       res.status(400);
-      throw new Error(
-        `Sản phẩm "${product.title}" không đủ hàng (Còn: ${product.countInStock})`
-      );
+      throw new Error(`Sản phẩm "${product.title}" không đủ hàng`);
     }
   }
 
@@ -26,13 +26,31 @@ const createOrder = asyncHandler(async (req, res) => {
   const newOrder = new Order(req.body);
   const savedOrder = await newOrder.save();
 
-  // 3. TRỪ TỒN KHO
+  // 3. XỬ LÝ HẬU KỲ (Chỉ chạy khi đơn hàng ĐÃ TẠO THÀNH CÔNG)
   if (savedOrder) {
+    // A. Trừ tồn kho sản phẩm
     for (const item of products) {
       await Product.findByIdAndUpdate(item.productId, {
         $inc: { countInStock: -item.quantity, sold: item.quantity },
       });
     }
+
+    // B. Xử lý Coupon (ĐÁNH DẤU ĐÃ DÙNG TẠI ĐÂY)
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode });
+      if (coupon) {
+        // Tăng số lượt dùng chung của mã
+        await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
+
+        // Đánh dấu mã này là "isUsed: true" trong ví User
+        await User.updateOne(
+          { _id: req.user.id, "wallet.coupon": coupon._id },
+          { $set: { "wallet.$.isUsed": true } }
+        );
+      }
+    }
+
+    // C. Trả về kết quả
     res.status(201).json(savedOrder);
   } else {
     res.status(400);
@@ -40,14 +58,65 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 });
 
-// Update Order
+// ... (Giữ nguyên các hàm getUserOrder, getAllOrders, cancelOrder cũ của bạn)
+// Các hàm dưới đây bạn giữ nguyên như cũ nhé:
+const getUserOrder = asyncHandler(async (req, res) => {
+  const userId = req.params.id;
+  const orders = await Order.find({ userId: userId }).sort({ createdAt: -1 });
+  const reviews = await Review.find({ user: userId });
+  const reviewedSet = new Set(
+    reviews.map((r) => `${r.order?.toString()}-${r.product?.toString()}`)
+  );
+  const result = orders.map((order) => {
+    const orderObj = order.toObject();
+    orderObj.products = orderObj.products.map((product) => {
+      const key = `${order._id.toString()}-${product.productId.toString()}`;
+      return {
+        ...product,
+        isReviewed: reviewedSet.has(key),
+      };
+    });
+    return orderObj;
+  });
+  res.status(200).json(result);
+});
+
+const getAllOrders = asyncHandler(async (req, res) => {
+  const orders = await Order.find().sort({ createdAt: -1 });
+  res.status(200).json(orders);
+});
+
+const cancelOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    res.status(404);
+    throw new Error("Không tìm thấy đơn hàng");
+  }
+  if (order.userId.toString() !== req.user._id.toString()) {
+    res.status(401);
+    throw new Error("Không có quyền");
+  }
+  if (order.status !== 0) {
+    res.status(400);
+    throw new Error("Không thể hủy");
+  }
+
+  for (const item of order.products) {
+    await Product.findByIdAndUpdate(item.productId, {
+      $inc: { countInStock: item.quantity, sold: -item.quantity },
+    });
+  }
+  order.status = 3;
+  const updatedOrder = await order.save();
+  res.status(200).json({ message: "Hủy đơn thành công", order: updatedOrder });
+});
+
 const updateOrder = asyncHandler(async (req, res) => {
   const updatedOrder = await Order.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
     { new: true }
   );
-
   if (!updatedOrder) {
     res.status(404);
     throw new Error("Order not found");
@@ -56,7 +125,6 @@ const updateOrder = asyncHandler(async (req, res) => {
   }
 });
 
-// Delete Order
 const deleteOrder = asyncHandler(async (req, res) => {
   const order = await Order.findByIdAndDelete(req.params.id);
   if (!order) {
@@ -65,85 +133,6 @@ const deleteOrder = asyncHandler(async (req, res) => {
   } else {
     res.status(200).json({ message: "Order has been deleted" });
   }
-});
-
-// --- PHẦN SỬA ĐỔI QUAN TRỌNG NHẤT ---
-// Get User Order
-const getUserOrder = asyncHandler(async (req, res) => {
-  const userId = req.params.id;
-
-  // 1. Lấy tất cả đơn hàng của User (Mới nhất lên đầu)
-  const orders = await Order.find({ userId: userId }).sort({ createdAt: -1 });
-
-  // 2. Lấy tất cả Review của User này
-  const reviews = await Review.find({ user: userId });
-
-  // 3. Tạo một bộ nhớ tạm (Set) chứa các mã "OrderId-ProductId" đã đánh giá
-  // Mục đích: Để tra cứu cực nhanh xem đơn hàng X có sản phẩm Y đã đánh giá chưa
-  const reviewedSet = new Set(
-    reviews.map((r) => `${r.order?.toString()}-${r.product?.toString()}`)
-  );
-
-  // 4. Duyệt qua từng đơn hàng và từng sản phẩm để gắn cờ isReviewed
-  const result = orders.map((order) => {
-    const orderObj = order.toObject(); // Chuyển Mongoose Doc sang Object thường để chỉnh sửa
-
-    orderObj.products = orderObj.products.map((product) => {
-      // Tạo key kiểm tra: ID Đơn hàng + ID Sản phẩm
-      const key = `${order._id.toString()}-${product.productId.toString()}`;
-
-      return {
-        ...product,
-        // Nếu key này tồn tại trong reviewedSet -> Đã đánh giá (true), ngược lại là false
-        isReviewed: reviewedSet.has(key),
-      };
-    });
-
-    return orderObj;
-  });
-
-  res.status(200).json(result);
-});
-// -------------------------------------
-
-// Get All Orders
-const getAllOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find().sort({ createdAt: -1 });
-  res.status(200).json(orders);
-});
-
-// Cancel Order
-const cancelOrder = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
-
-  if (!order) {
-    res.status(404);
-    throw new Error("Không tìm thấy đơn hàng");
-  }
-
-  if (order.userId.toString() !== req.user._id.toString()) {
-    res.status(401);
-    throw new Error("Bạn không có quyền hủy đơn hàng này");
-  }
-
-  if (order.status !== 0) {
-    res.status(400);
-    throw new Error("Không thể hủy đơn hàng đã xác nhận");
-  }
-
-  // Hoàn kho
-  for (const item of order.products) {
-    await Product.findByIdAndUpdate(item.productId, {
-      $inc: { countInStock: item.quantity, sold: -item.quantity },
-    });
-  }
-
-  order.status = 3;
-  const updatedOrder = await order.save();
-
-  res
-    .status(200)
-    .json({ message: "Hủy đơn thành công, đã hoàn kho", order: updatedOrder });
 });
 
 export {

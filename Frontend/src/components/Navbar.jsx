@@ -6,6 +6,7 @@ import {
   FaClipboardList,
   FaUserCog,
   FaBars,
+  FaTicketAlt,
 } from "react-icons/fa";
 // 1. Thêm useLocation vào import
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -138,7 +139,7 @@ const Navbar = () => {
                       to="/admin"
                       className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold transition"
                     >
-                      <FaUserCog className="inline mr-2" /> Trang Quản Trị
+                      <FaUserCog className="inline mr-2" /> Trang quản trị
                     </Link>
                   )}
 
@@ -148,6 +149,14 @@ const Navbar = () => {
                   >
                     <FaUser className="inline mr-2" /> Tài khoản của tôi
                   </Link>
+
+                  <Link
+                    to="/my-vouchers"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition"
+                  >
+                    <FaTicketAlt className="inline mr-2" /> Mã giảm giá của tôi
+                  </Link>
+
                   <Link
                     to="/myorders"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition"
