@@ -2,6 +2,8 @@ import Banner from "../components/Banner";
 import Category from "../components/Category";
 import FlashSale from "../components/FlashSale";
 import BestSeller from "../components/BestSeller";
+import TopRated from "../components/TopRated";
+import RandomProducts from "../components/RandomProducts";
 
 const Home = () => {
   return (
@@ -20,7 +22,11 @@ const Home = () => {
         {/* 4. Top Sách Bán Chạy */}
         <BestSeller />
 
-        {/* Có thể thêm các section khác như "Sách mới", "Gợi ý hôm nay"... */}
+        {/* 5. Sách Đánh Giá Cao (MỚI) */}
+        <TopRated />
+
+        {/* 6. Gợi ý ngẫu nhiên (MỚI) */}
+        <RandomProducts />
       </div>
     </div>
   );

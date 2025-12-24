@@ -68,32 +68,61 @@ const getAllProducts = asyncHandler(async (req, res) => {
   const qSearch = req.query.search;
   const qBestSeller = req.query.bestseller;
 
+  // --- THÊM 2 BIẾN MỚI ---
+  const qTopRated = req.query.toprated;
+  const qRandom = req.query.random;
+
   try {
-    let filter = {};
+    let products;
 
-    if (qCategory) {
-      filter.category = qCategory;
-    }
-    if (qSearch) {
-      filter.title = {
-        $regex: qSearch,
-        $options: "i",
-      };
-    }
-
-    let query = Product.find(filter).populate("category");
-
-    // --- XỬ LÝ SẮP XẾP ---
-    if (qNew) {
-      query = query.sort({ createdAt: -1 });
-    } else if (qBestSeller) {
-      // NẾU CÓ QUERY BESTSELLER -> SẮP XẾP THEO SOLD GIẢM DẦN
-      query = query.sort({ sold: -1 });
-    } else {
-      query = query.sort({ createdAt: -1 });
+    // --- TRƯỜNG HỢP 1: LẤY NGẪU NHIÊN (RANDOM) ---
+    if (qRandom) {
+      // Dùng Aggregation $sample của MongoDB
+      products = await Product.aggregate([
+        { $sample: { size: 10 } }, // Lấy ngẫu nhiên 10 sản phẩm
+      ]);
+      // Vì aggregate trả về object thuần, cần populate thủ công để lấy tên thể loại
+      products = await Product.populate(products, { path: "category" });
     }
 
-    const products = await query;
+    // --- TRƯỜNG HỢP 2: LẤY ĐÁNH GIÁ CAO (TOP RATED) ---
+    else if (qTopRated) {
+      products = await Product.find({
+        rating: { $gte: 4.0 }, // Điểm >= 4.0 (Để 4.0 cho dễ ra kết quả test, sau này sửa lên 4.5)
+        numReviews: { $gt: 0 }, // Có ít nhất 1 đánh giá (Sửa thành > 5 hoặc 10 khi site đã đông)
+      })
+        .sort({ rating: -1, numReviews: -1 }) // Ưu tiên điểm cao, sau đó đến số lượng nhiều
+        .limit(10)
+        .populate("category");
+    }
+
+    // --- TRƯỜNG HỢP 3: LỌC VÀ TÌM KIẾM THƯỜNG (Logic cũ) ---
+    else {
+      let filter = {};
+
+      if (qCategory) {
+        filter.category = qCategory;
+      }
+      if (qSearch) {
+        filter.title = {
+          $regex: qSearch,
+          $options: "i",
+        };
+      }
+
+      let query = Product.find(filter).populate("category");
+
+      if (qNew) {
+        query = query.sort({ createdAt: -1 });
+      } else if (qBestSeller) {
+        query = query.sort({ sold: -1 });
+      } else {
+        query = query.sort({ createdAt: -1 });
+      }
+
+      products = await query;
+    }
+
     res.status(200).json(products);
   } catch (err) {
     res

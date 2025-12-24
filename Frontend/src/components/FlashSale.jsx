@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FaBolt, FaChevronRight, FaClock } from "react-icons/fa";
 import { userRequest } from "../requestMethods";
 import ProductCard from "./ProductCard";
+import { Link } from "react-router-dom";
 
 const FlashSale = () => {
   const [products, setProducts] = useState([]);
@@ -102,13 +103,13 @@ const FlashSale = () => {
             </div>
           </div>
         </div>
-        <a
-          href="/flash-sale"
+        <Link
+          to="/flash-sale"
           className="group bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center backdrop-blur-sm border border-white/40"
         >
           Xem tất cả{" "}
           <FaChevronRight className="ml-1 text-xs group-hover:translate-x-1 transition-transform" />
-        </a>
+        </Link>
       </div>
 
       {/* --- PRODUCT LIST --- */}
