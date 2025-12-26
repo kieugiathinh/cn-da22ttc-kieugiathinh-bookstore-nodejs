@@ -143,3 +143,38 @@ export const calculateDiscount = asyncHandler(async (req, res) => {
     message: "Áp dụng mã thành công",
   });
 });
+
+// 5. ADMIN: Lấy tất cả mã (Bao gồm cả mã ẩn, hết hạn để quản lý)
+export const getAllCouponsAdmin = asyncHandler(async (req, res) => {
+  const coupons = await Coupon.find().sort({ createdAt: -1 });
+  res.status(200).json(coupons);
+});
+
+// 6. ADMIN: Cập nhật mã (Sửa thông tin hoặc Ẩn/Hiện)
+export const updateCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findById(req.params.id);
+  if (!coupon) {
+    res.status(404);
+    throw new Error("Mã giảm giá không tồn tại");
+  }
+
+  const updatedCoupon = await Coupon.findByIdAndUpdate(
+    req.params.id,
+    { $set: req.body },
+    { new: true } // Trả về data mới sau khi update
+  );
+
+  res.status(200).json(updatedCoupon);
+});
+
+// 7. ADMIN: Xóa mã
+export const deleteCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findById(req.params.id);
+  if (!coupon) {
+    res.status(404);
+    throw new Error("Mã giảm giá không tồn tại");
+  }
+
+  await Coupon.findByIdAndDelete(req.params.id);
+  res.status(200).json({ message: "Đã xóa mã giảm giá" });
+});

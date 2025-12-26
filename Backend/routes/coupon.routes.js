@@ -4,26 +4,24 @@ import {
   saveCouponToWallet,
   calculateDiscount,
   getAllCoupons,
+  getAllCouponsAdmin,
+  updateCoupon,
+  deleteCoupon,
 } from "../controller/coupon.controller.js";
 
 import { protect, admin } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// 1. Lấy danh sách mã hiển thị trang chủ
-// Route này thường để Public cho mọi người cùng xem
+// Public hoặc User logged in
 router.get("/", getAllCoupons);
-
-// 2. Admin tạo mã
-// Thay verifyTokenAndAdmin thành -> protect, admin (chạy lần lượt)
-router.post("/", protect, admin, createCoupon);
-
-// 3. User lưu mã vào ví
-// Thay verifyToken thành -> protect
 router.post("/save", protect, saveCouponToWallet);
-
-// 4. User check mã khi thanh toán
-// Thay verifyToken thành -> protect
 router.post("/apply", protect, calculateDiscount);
+
+// --- ADMIN ROUTES ---
+router.get("/admin", protect, admin, getAllCouponsAdmin);
+router.post("/", protect, admin, createCoupon);
+router.put("/:id", protect, admin, updateCoupon);
+router.delete("/:id", protect, admin, deleteCoupon);
 
 export default router;

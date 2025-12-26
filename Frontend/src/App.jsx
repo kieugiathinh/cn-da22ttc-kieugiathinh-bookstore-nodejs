@@ -35,6 +35,7 @@ import AdminProductEdit from "./pages/admin/Product";
 import AdminNewProduct from "./pages/admin/NewProduct";
 import AdminCategories from "./pages/admin/Categories";
 import AdminReviews from "./pages/admin/Reviews";
+import AdminCoupon from "./pages/admin/CouponList";
 
 function App() {
   const user = useSelector((state) => state.user);
@@ -121,6 +122,7 @@ function App() {
         { path: "banners", element: <AdminBanners /> },
         { path: "flash-sales", element: <AdminFlashSales /> },
         { path: "reviews", element: <AdminReviews /> },
+        { path: "coupons", element: <AdminCoupon /> },
       ],
     },
   ]);
