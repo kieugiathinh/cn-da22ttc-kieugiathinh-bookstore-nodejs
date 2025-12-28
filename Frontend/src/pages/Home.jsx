@@ -3,8 +3,8 @@ import Category from "../components/Category";
 import FlashSale from "../components/FlashSale";
 import BestSeller from "../components/BestSeller";
 import TopRated from "../components/TopRated";
-import RandomProducts from "../components/RandomProducts";
 import CouponList from "../components/CouponList";
+import NewProducts from "../components/NewProducts";
 
 const Home = () => {
   return (
@@ -13,23 +13,12 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 space-y-6 pt-6">
         {/* 1. Banner Slider */}
         <Banner />
-
         <CouponList />
-
-        {/* 2. Flash Sale */}
         <FlashSale />
-
-        {/* 3. Danh mục thể loại */}
         <Category />
-
-        {/* 4. Top Sách Bán Chạy */}
+        <NewProducts />
         <BestSeller />
-
-        {/* 5. Sách Đánh Giá Cao (MỚI) */}
         <TopRated />
-
-        {/* 6. Gợi ý ngẫu nhiên (MỚI) */}
-        <RandomProducts />
       </div>
     </div>
   );

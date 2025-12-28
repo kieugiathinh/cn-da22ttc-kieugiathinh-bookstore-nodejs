@@ -5,18 +5,21 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  getNewProducts,
+  getRelatedProducts,
 } from "../controllers/product.controller.js";
+
+import { protect, admin } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
 
-//Get All Products
-router.get("/", getAllProducts);
-//Get Product
+router.get("/new", getNewProducts);
+router.get("/related", getRelatedProducts);
+
+router.post("/", protect, admin, createProduct);
+router.put("/:id", protect, admin, updateProduct);
+router.delete("/:id", protect, admin, deleteProduct);
 router.get("/find/:id", getProduct);
-//Create Product
-router.post("/", createProduct);
-//Update Product
-router.put("/:id", updateProduct);
-//Delete Product
-router.delete("/:id", deleteProduct);
+router.get("/", getAllProducts);
 
 export default router;

@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addProduct } from "../redux/cartRedux";
 import { toast } from "sonner";
 import moment from "moment";
+import RelatedProducts from "../components/RelatedProducts";
 
 // --- COMPONENT HIỂN THỊ SAO (MỚI) ---
 const StarRating = ({ rating, size = "text-sm" }) => {
@@ -443,6 +444,11 @@ const Product = () => {
             </div>
           </div>
         </div>
+
+        <RelatedProducts
+          categoryId={product.category?._id || product.category}
+          currentProductId={product._id}
+        />
       </div>
     </div>
   );

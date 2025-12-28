@@ -1,11 +1,10 @@
 import Product from "../models/product.model.js";
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 
 // 1. Create Product
 const createProduct = asyncHandler(async (req, res) => {
-  // Cách viết chuẩn: Product.create() hoặc new Product().save()
   const newProduct = new Product(req.body);
-
   try {
     const savedProduct = await newProduct.save();
     res.status(201).json(savedProduct);
@@ -16,31 +15,23 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 // 2. Update Product
-// Bạn đang dùng $set: req.body -> RẤT TỐT.
-// Nó sẽ tự động cập nhật mọi trường (author, publisher, countInStock...) mà Frontend gửi lên.
 const updateProduct = asyncHandler(async (req, res) => {
   const updatedProduct = await Product.findByIdAndUpdate(
     req.params.id,
-    {
-      $set: req.body,
-    },
-    {
-      new: true, // Trả về data mới sau khi update
-    }
+    { $set: req.body },
+    { new: true }
   );
-
   if (!updatedProduct) {
-    res.status(404); // Dùng 404 Not Found hợp lý hơn 400
+    res.status(404);
     throw new Error("Không tìm thấy sản phẩm để cập nhật");
   } else {
-    res.status(200).json(updatedProduct); // Update thành công dùng 200
+    res.status(200).json(updatedProduct);
   }
 });
 
 // 3. Delete Product
 const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findByIdAndDelete(req.params.id);
-
   if (!product) {
     res.status(404);
     throw new Error("Không tìm thấy sản phẩm để xóa");
@@ -51,9 +42,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
 // 4. Get Single Product
 const getProduct = asyncHandler(async (req, res) => {
-  // QUAN TRỌNG: Thêm .populate("category") để lấy tên thể loại
   const product = await Product.findById(req.params.id).populate("category");
-
   if (!product) {
     res.status(404);
     throw new Error("Sản phẩm không tồn tại");
@@ -62,52 +51,36 @@ const getProduct = asyncHandler(async (req, res) => {
   }
 });
 
+// 5. Get All Products
 const getAllProducts = asyncHandler(async (req, res) => {
   const qNew = req.query.new;
   const qCategory = req.query.category;
   const qSearch = req.query.search;
   const qBestSeller = req.query.bestseller;
-
-  // --- THÊM 2 BIẾN MỚI ---
   const qTopRated = req.query.toprated;
   const qRandom = req.query.random;
 
   try {
     let products;
 
-    // --- TRƯỜNG HỢP 1: LẤY NGẪU NHIÊN (RANDOM) ---
     if (qRandom) {
-      // Dùng Aggregation $sample của MongoDB
-      products = await Product.aggregate([
-        { $sample: { size: 10 } }, // Lấy ngẫu nhiên 10 sản phẩm
-      ]);
-      // Vì aggregate trả về object thuần, cần populate thủ công để lấy tên thể loại
+      products = await Product.aggregate([{ $sample: { size: 10 } }]);
       products = await Product.populate(products, { path: "category" });
-    }
-
-    // --- TRƯỜNG HỢP 2: LẤY ĐÁNH GIÁ CAO (TOP RATED) ---
-    else if (qTopRated) {
+    } else if (qTopRated) {
       products = await Product.find({
-        rating: { $gte: 4.0 }, // Điểm >= 4.0 (Để 4.0 cho dễ ra kết quả test, sau này sửa lên 4.5)
-        numReviews: { $gt: 0 }, // Có ít nhất 1 đánh giá (Sửa thành > 5 hoặc 10 khi site đã đông)
+        rating: { $gte: 4.0 },
+        numReviews: { $gt: 0 },
       })
-        .sort({ rating: -1, numReviews: -1 }) // Ưu tiên điểm cao, sau đó đến số lượng nhiều
+        .sort({ rating: -1, numReviews: -1 })
         .limit(10)
         .populate("category");
-    }
-
-    // --- TRƯỜNG HỢP 3: LỌC VÀ TÌM KIẾM THƯỜNG (Logic cũ) ---
-    else {
+    } else {
       let filter = {};
-
       if (qCategory) {
         filter.category = qCategory;
       }
       if (qSearch) {
-        filter.title = {
-          $regex: qSearch,
-          $options: "i",
-        };
+        filter.title = { $regex: qSearch, $options: "i" };
       }
 
       let query = Product.find(filter).populate("category");
@@ -119,15 +92,55 @@ const getAllProducts = asyncHandler(async (req, res) => {
       } else {
         query = query.sort({ createdAt: -1 });
       }
-
       products = await query;
     }
-
     res.status(200).json(products);
   } catch (err) {
+    res.status(500).json({ message: "Lỗi: " + err.message });
+  }
+});
+
+// 6. Get New Products
+const getNewProducts = asyncHandler(async (req, res) => {
+  try {
+    const products = await Product.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate("category");
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+
+// 7. Get Related Products (FIXED)
+const getRelatedProducts = asyncHandler(async (req, res) => {
+  const { categoryId, productId } = req.query;
+
+  if (!categoryId || !productId) {
+    return res
+      .status(400)
+      .json({ message: "Thiếu thông tin categoryId hoặc productId" });
+  }
+
+  try {
+    // Cần import mongoose ở đầu file để dùng mongoose.Types.ObjectId
+    let products = await Product.aggregate([
+      {
+        $match: {
+          category: new mongoose.Types.ObjectId(categoryId),
+          _id: { $ne: new mongoose.Types.ObjectId(productId) },
+        },
+      },
+      { $sample: { size: 5 } },
+    ]);
+
+    products = await Product.populate(products, { path: "category" });
+    res.status(200).json(products);
+  } catch (error) {
     res
       .status(500)
-      .json({ message: "Lỗi khi lấy danh sách sản phẩm: " + err.message });
+      .json({ message: "Lỗi lấy sách liên quan: " + error.message });
   }
 });
 
@@ -137,4 +150,6 @@ export {
   createProduct,
   updateProduct,
   deleteProduct,
+  getNewProducts,
+  getRelatedProducts,
 };
