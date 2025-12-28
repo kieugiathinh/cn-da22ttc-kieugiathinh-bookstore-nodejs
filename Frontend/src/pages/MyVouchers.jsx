@@ -21,7 +21,7 @@ const MyVouchers = () => {
             <span className="bg-orange-100 p-3 rounded-2xl text-orange-600">
               <FaTicketAlt />
             </span>
-            Kho Voucher Của Tôi
+            KHO MÃ GIẢM GIÁ CỦA TÔI
           </h1>
           <span className="text-sm font-medium text-gray-500 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 hidden sm:block">
             Bạn đang có{" "}

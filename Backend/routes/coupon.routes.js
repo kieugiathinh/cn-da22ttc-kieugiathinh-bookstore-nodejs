@@ -7,7 +7,7 @@ import {
   getAllCouponsAdmin,
   updateCoupon,
   deleteCoupon,
-} from "../controller/coupon.controller.js";
+} from "../controllers/coupon.controller.js";
 
 import { protect, admin } from "../middleware/auth.middleware.js";
 

@@ -5,7 +5,7 @@ import {
   updateCategory,
   deleteCategory,
   getCategoryById,
-} from "../controller/category.controller.js";
+} from "../controllers/category.controller.js";
 
 import { protect, admin } from "../middleware/auth.middleware.js";
 

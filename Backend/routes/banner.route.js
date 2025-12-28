@@ -5,7 +5,7 @@ import {
   deleteBanner,
   getRandomBanner,
   updateBanner,
-} from "../controller/banner.controller.js";
+} from "../controllers/banner.controller.js";
 const router = express.Router();
 
 //Create Banner

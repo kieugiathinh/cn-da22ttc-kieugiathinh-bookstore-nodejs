@@ -7,7 +7,7 @@ import {
   deleteFlashSale,
   updateFlashSale,
   removeProductFromFlashSale,
-} from "../controller/flashsale.controller.js";
+} from "../controllers/flashsale.controller.js";
 import { protect, admin } from "../middleware/auth.middleware.js";
 
 const router = express.Router();

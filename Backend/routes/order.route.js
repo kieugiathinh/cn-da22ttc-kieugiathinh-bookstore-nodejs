@@ -6,7 +6,7 @@ import {
   createOrder,
   updateOrder,
   cancelOrder,
-} from "../controller/order.controller.js";
+} from "../controllers/order.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
